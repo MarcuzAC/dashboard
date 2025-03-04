@@ -24,7 +24,7 @@ export const login = async (username, password) => {
     );
 
     // Store token in cookies (expires in 7 days)
-    Cookies.set("accessToken", data.access_token, { expires: 7 });
+    //Cookies.set("accessToken", data.access_token, { expires: 7 });
 
     return data;
   } catch (error) {
