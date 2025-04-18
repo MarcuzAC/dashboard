@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useEffect, useState } from "react";
 import { fetchDashboardStats, fetchRecentVideos } from "../utils/api";
 import { FaUsers, FaVideo, FaList, FaDollarSign } from "react-icons/fa";
 
@@ -48,108 +49,125 @@ const Dashboard = () => {
         }
       </div>
 
-      {/* Recent Videos Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-          <h3 className="text-md sm:text-lg font-semibold text-gray-900">Recent Videos</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-full md:min-w-[600px]">
-            <thead className="bg-gray-50 hidden md:table-header-group">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Video URL</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading
-                ? [...Array(5)].map((_, index) => <SkeletonTableRow key={index} />)
-                : videos.length > 0 ? (
-                  videos.map((video) => (
-                    <React.Fragment key={video.id}>
-                      {/* Desktop Row */}
-                      <tr className="hidden md:table-row">
-                        <td className="px-4 sm:px-6 py-4 text-gray-700">{video.title}</td>
-                        <td className="px-4 sm:px-6 py-4 text-gray-700">{video.category}</td>
-                        <td className="px-4 sm:px-6 py-4 text-blue-500 underline">{video.vimeo_url}</td>
-                        <td className="px-4 sm:px-6 py-4 text-gray-700">
-                          {new Date(video.created_date).toLocaleDateString()}
-                        </td>
-                      </tr>
+{/* Recent Videos Table */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+    <h3 className="text-md sm:text-lg font-semibold text-gray-900">Recent Videos</h3>
+  </div>
+  <div className="overflow-x-auto">
+    <table className="w-full min-w-full md:min-w-[600px]">
+      <thead className="bg-gray-50 hidden md:table-header-group">
+        <tr>
+          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Video URL</th>
+          <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {loading
+          ? [...Array(5)].map((_, index) => <SkeletonTableRow key={index} />)
+          : videos.length > 0 ? (
+            videos.map((video) => (
+              <React.Fragment key={video.id}>
+                {/* Desktop Row */}
+                <tr className="hidden md:table-row">
+                  <td className="px-4 sm:px-6 py-4 text-gray-700">{video.title}</td>
+                  <td className="px-4 sm:px-6 py-4 text-gray-700">{video.category}</td>
+                  <td className="px-4 sm:px-6 py-4 text-blue-500 underline">{video.vimeo_url}</td>
+                  <td className="px-4 sm:px-6 py-4 text-gray-700">{new Date(video.created_date).toLocaleDateString()}</td>
+                </tr>
 
-                      {/* Mobile Row */}
-                      <tr className="block w-full md:hidden">
-                        <td className="block p-4 border-b">
-                          <p className="text-sm font-semibold text-gray-900">{video.title}</p>
-                          <p className="text-xs text-gray-500">{video.category}</p>
-                          <p className="text-xs text-blue-500 underline">{video.vimeo_url}</p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(video.created_date).toLocaleDateString()}
-                          </p>
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-4 sm:px-6 py-4 text-center text-gray-500">No videos found</td>
-                  </tr>
-                )
-              }
-            </tbody>
-          </table>
+                {/* Mobile Card View */}
+                <tr className="block w-full md:hidden">
+                  <td className="block p-4 border-b">
+                    <p className="text-sm font-semibold text-gray-900">{video.title}</p>
+                    <p className="text-xs text-gray-500">{video.category}</p>
+                    <p className="text-xs text-blue-500 underline">{video.vimeo_url}</p>
+                    <p className="text-xs text-gray-400">{new Date(video.created_date).toLocaleDateString()}</p>
+                  </td>
+                </tr>
+              </React.Fragment>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" className="px-4 sm:px-6 py-4 text-center text-gray-500">No videos found</td>
+            </tr>
+          )
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+    </div>
+  );
+};
+
+/* Reusable Stat Card Component */
+const StatCard = ({ icon, title, value }) => {
+  return (
+    <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center">
+        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-blue-50 rounded-xl flex items-center justify-center">
+          <span className="text-blue-600 text-xl md:text-2xl">{icon}</span>
+        </div>
+        <div className="ml-3 md:ml-4">
+          <h4 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">{title}</h4>
+          <p className="text-lg sm:text-xl font-bold text-gray-900">{value}</p>
         </div>
       </div>
     </div>
   );
 };
 
-/* Reusable Stat Card Component */
-const StatCard = ({ icon, title, value }) => (
-  <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all duration-200">
-    <div className="flex items-center">
-      <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-blue-50 rounded-xl flex items-center justify-center">
-        <span className="text-blue-600 text-xl md:text-2xl">{icon}</span>
-      </div>
-      <div className="ml-3 md:ml-4">
-        <h4 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">{title}</h4>
-        <p className="text-lg sm:text-xl font-bold text-gray-900">{value}</p>
-      </div>
-    </div>
-  </div>
-);
-
 /* Skeleton Stat Card */
-const SkeletonStatCard = () => (
-  <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
-    <div className="flex items-center">
-      <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gray-200 rounded-xl"></div>
-      <div className="ml-3 md:ml-4">
-        <div className="h-3 md:h-4 bg-gray-200 w-20 mb-2 rounded"></div>
-        <div className="h-5 md:h-6 bg-gray-300 w-14 rounded"></div>
+const SkeletonStatCard = () => {
+  return (
+    <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+      <div className="flex items-center">
+        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gray-200 rounded-xl"></div>
+        <div className="ml-3 md:ml-4">
+          <div className="h-3 md:h-4 bg-gray-200 w-20 mb-2 rounded"></div>
+          <div className="h-5 md:h-6 bg-gray-300 w-14 rounded"></div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+/* Table Row Component */
+const TableRow = ({ title, category, uploadedBy, date }) => {
+  return (
+    <tr className="hover:bg-gray-50 transition-colors">
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{title}</td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-600">
+        <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{category}</span>
+      </td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-600">{uploadedBy}</td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-500">{date}</td>
+    </tr>
+  );
+};
 
 /* Skeleton Table Row */
-const SkeletonTableRow = () => (
-  <tr className="animate-pulse">
-    <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-      <div className="h-3 md:h-4 bg-gray-200 rounded w-28"></div>
-    </td>
-    <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-      <div className="h-3 md:h-4 bg-gray-200 rounded w-20"></div>
-    </td>
-    <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-      <div className="h-3 md:h-4 bg-gray-200 rounded w-24"></div>
-    </td>
-    <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-      <div className="h-3 md:h-4 bg-gray-200 rounded w-16"></div>
-    </td>
-  </tr>
-);
+const SkeletonTableRow = () => {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+        <div className="h-3 md:h-4 bg-gray-200 rounded w-28"></div>
+      </td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+        <div className="h-3 md:h-4 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+        <div className="h-3 md:h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+        <div className="h-3 md:h-4 bg-gray-200 rounded w-16"></div>
+      </td>
+    </tr>
+  );
+};
 
 export default Dashboard;

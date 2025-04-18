@@ -2,21 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { FaEdit, FaTrashAlt, FaPlus, FaUpload } from "react-icons/fa";
-import {
-  fetchVideos,
-  fetchCategories,
-  uploadVideo,
-  deleteVideo,
-  updateVideo,
-} from "../utils/api";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Button,
-} from "@mui/material";
+import { fetchVideos, fetchCategories, uploadVideo, deleteVideo, updateVideo } from "../utils/api";
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -33,10 +20,7 @@ const Videos = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [videoData, categoryData] = await Promise.all([
-          fetchVideos(),
-          fetchCategories(),
-        ]);
+        const [videoData, categoryData] = await Promise.all([fetchVideos(), fetchCategories()]);
         setVideos(videoData);
         setCategories(categoryData);
       } catch (error) {
@@ -111,6 +95,7 @@ const Videos = () => {
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
       <ToastContainer position="top-right" autoClose={3000} />
+
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-semibold text-gray-900">Video Library</h2>
         <p className="text-gray-500 mb-8">Manage your video collection</p>
@@ -128,10 +113,7 @@ const Videos = () => {
           {loading
             ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
             : videos.map((video) => (
-                <div
-                  key={video.id}
-                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-                >
+                <div key={video.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="relative aspect-video">
                     <iframe
                       src={`https://player.vimeo.com/video/${video.vimeo_id}?title=0&byline=0&portrait=0`}
@@ -142,9 +124,7 @@ const Videos = () => {
                   <div className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-lg text-gray-800 mb-1">
-                          {video.title}
-                        </h3>
+                        <h3 className="font-semibold text-lg text-gray-800 mb-1">{video.title}</h3>
                         <span className="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
                           {video.category}
                         </span>
@@ -171,15 +151,11 @@ const Videos = () => {
       </div>
 
       {/* DELETE CONFIRMATION DIALOG */}
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-      >
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete "<b>{videoToDelete?.title}</b>"? This
-            action cannot be undone.
+            Are you sure you want to delete "<b>{videoToDelete?.title}</b>"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -193,34 +169,31 @@ const Videos = () => {
       </Dialog>
 
       {isModalOpen && (
-        <VideoModal
-          categories={categories}
-          onSubmit={handleUploadOrEdit}
-          onClose={toggleModal}
-          video={currentVideo}
-        />
+        <VideoModal categories={categories} onSubmit={handleUploadOrEdit} onClose={toggleModal} video={currentVideo} />
       )}
     </div>
   );
 };
 
-// Video Modal component (without thumbnail)
+
 const VideoModal = ({ categories, onSubmit, onClose, video }) => {
   const [title, setTitle] = useState(video?.title || "");
   const [category, setCategory] = useState(video?.category_id || "");
   const [videoFile, setVideoFile] = useState(null);
+  const [thumbnailFile, setThumbnailFile] = useState(null); // Add this state
   const [isProcessing, setIsProcessing] = useState(false);
   const videoInputRef = useRef(null);
+  const thumbnailInputRef = useRef(null); // Add this ref
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = (event, setFile) => {
     const file = event.target.files[0];
     if (file) {
-      setVideoFile(file);
+      setFile(file);
     }
   };
 
-  const triggerFileInput = () => {
-    videoInputRef.current.click();
+  const triggerFileInput = (ref) => {
+    ref.current.click();
   };
 
   const handleSubmit = async (e) => {
@@ -231,8 +204,14 @@ const VideoModal = ({ categories, onSubmit, onClose, video }) => {
     formData.append("title", title);
     formData.append("category_id", category);
 
+    // Append video file (only for new videos)
     if (!video && videoFile) {
       formData.append("file", videoFile);
+    }
+
+    // Append thumbnail file (if provided)
+    if (thumbnailFile) {
+      formData.append("thumbnail", thumbnailFile);
     }
 
     try {
@@ -250,15 +229,11 @@ const VideoModal = ({ categories, onSubmit, onClose, video }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-opacity-100 backdrop-blur-sm flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-    >
+    <div className="fixed inset-0 bg-opacity-100 backdrop-blur-sm flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
       <div className="bg-white rounded-xl p-6 shadow-2xl w-full m-4 max-w-md">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6">
-          {video ? "Edit Video" : "Upload New Video"}
-        </h3>
+        <h3 className="text-2xl font-bold text-gray-800 mb-6">{video ? "Edit Video" : "Upload New Video"}</h3>
         <form onSubmit={handleSubmit}>
+          {/* Title Input */}
           <div className="mb-6">
             <label className="block text-gray-700 font-medium mb-2">Title</label>
             <input
@@ -270,6 +245,7 @@ const VideoModal = ({ categories, onSubmit, onClose, video }) => {
             />
           </div>
 
+          {/* Category Dropdown */}
           <div className="mb-6">
             <label className="block text-gray-700 font-medium mb-2">Category</label>
             <select
@@ -278,9 +254,7 @@ const VideoModal = ({ categories, onSubmit, onClose, video }) => {
               onChange={(e) => setCategory(e.target.value || "")}
               required
             >
-              <option value="" disabled>
-                Select category
-              </option>
+              <option value="" disabled>Select category</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -289,37 +263,74 @@ const VideoModal = ({ categories, onSubmit, onClose, video }) => {
             </select>
           </div>
 
+          {/* Video Upload (Only for Adding New Video) */}
           {!video && (
             <div className="mb-6">
               <label className="block text-gray-700 font-medium mb-2">Video</label>
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer"
-                onClick={triggerFileInput}
+                onClick={() => triggerFileInput(videoInputRef)}
               >
                 <input
                   type="file"
                   ref={videoInputRef}
                   className="hidden"
                   accept="video/*"
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, setVideoFile)}
                   required
                 />
                 <FaUpload className="mx-auto text-gray-400 mb-2" size={24} />
                 <p className="text-sm text-gray-600">
-                  {videoFile ? videoFile.name : "Click to upload a video file"}
+                  {videoFile ? videoFile.name : "Click to upload a video"}
                 </p>
               </div>
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isProcessing}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            {isProcessing ? "Processing..." : video ? "Update Video" : "Upload Video"}
-          </button>
+          {/* Thumbnail Upload */}
+          <div className="mb-6">
+            <label className="block text-gray-700 font-medium mb-2">Thumbnail</label>
+            <div
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer"
+              onClick={() => triggerFileInput(thumbnailInputRef)}
+            >
+              <input
+                type="file"
+                ref={thumbnailInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e, setThumbnailFile)}
+              />
+              <FaUpload className="mx-auto text-gray-400 mb-2" size={24} />
+              <p className="text-sm text-gray-600">
+                {thumbnailFile ? thumbnailFile.name : "Click to upload a thumbnail"}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-4">
+            <button type="button" className="px-5 py-3 text-gray-700 hover:bg-gray-100 rounded-lg" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" disabled={isProcessing}>
+              {isProcessing ? (video ? "Updating..." : "Uploading...") : video ? "Update Video" : "Upload Video"}
+            </button>
+          </div>
         </form>
+      </div>
+    </div>
+  ); 
+
+};
+// Skeleton Loader for Video Cards
+const SkeletonCard = () => {
+  return (
+    <div className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+      <div className="relative aspect-video bg-gray-300"></div>
+      <div className="p-4">
+        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-300 rounded w-1/2"></div>
       </div>
     </div>
   );
