@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; 
-import { FaTachometerAlt, FaVideo, FaList, FaUsers, FaSignOutAlt, FaTimes } from "react-icons/fa";
+import { FaTachometerAlt, FaVideo, FaList, FaUsers, FaSignOutAlt, FaTimes, FaNewspaper } from "react-icons/fa";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Cookies from "js-cookie"; 
@@ -28,15 +28,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <>
-      
-        <div
-          className={`fixed top-0 left-0 h-screen w-64 bg-blue-900 text-white shadow-lg transition-transform duration-300 
-          ${isOpen ? "translate-x-0" : "-translate-x-64"} lg:translate-x-0 lg:relative z-50 overflow-y-auto`}
-          style={{position: "fixed"}}
-        >
-          <div className="p-5 text-2xl font-bold border-b border-blue-700 flex justify-between items-center">
-            Admin Panel
-            {/* Close button for mobile */}
+      <div
+        className={`fixed top-0 left-0 h-screen w-64 bg-blue-900 text-white shadow-lg transition-transform duration-300 
+        ${isOpen ? "translate-x-0" : "-translate-x-64"} lg:translate-x-0 lg:relative z-50 overflow-y-auto`}
+        style={{position: "fixed"}}
+      >
+        <div className="p-5 text-2xl font-bold border-b border-blue-700 flex justify-between items-center">
+          Admin Panel
+          {/* Close button for mobile */}
           <button className="lg:hidden text-white" onClick={toggleSidebar}>
             <FaTimes className="w-6 h-6" />
           </button>
@@ -61,6 +60,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <li>
               <Link href="/users" className={`flex items-center p-3 rounded-lg ${isActive("/users")}`}>
                 <FaUsers className="mr-3" /> Users
+              </Link>
+            </li>
+            {/* Added News Link */}
+            <li>
+              <Link href="/news" className={`flex items-center p-3 rounded-lg ${isActive("/news")}`}>
+                <FaNewspaper className="mr-3" /> News
               </Link>
             </li>
             <li>
