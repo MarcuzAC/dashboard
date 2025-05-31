@@ -239,9 +239,9 @@ export const fetchNewsById = async (newsId) => {
 export const createNewsArticle = async (newsData) => {
   try {
     const { data } = await axios.post(`${API_BASE_URL}/news`, newsData, {
-      headers: { 
+      headers: {
         ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data" 
+        "Content-Type": "application/json",
       },
     });
     return data;
@@ -255,9 +255,9 @@ export const createNewsArticle = async (newsData) => {
 export const updateNewsArticle = async (newsId, updatedData) => {
   try {
     const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, updatedData, {
-      headers: { 
+      headers: {
         ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data" 
+        "Content-Type": "application/json",
       },
     });
     return data;
@@ -279,16 +279,16 @@ export const deleteNewsArticle = async (newsId) => {
   }
 };
 
-// Upload news image
+// Upload news image (if used separately)
 export const uploadNewsImage = async (file) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const { data } = await axios.post(`${API_BASE_URL}/news/upload-image`, formData, {
-      headers: { 
+      headers: {
         ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data" 
+        "Content-Type": "multipart/form-data",
       },
     });
     return data;
