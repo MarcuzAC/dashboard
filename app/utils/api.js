@@ -223,9 +223,9 @@ export const fetchAllNews = async () => {
 };
 
 // Get single news article by ID
-export const fetchNewsById = async (newsId) => {
+export const fetchNewsById = async (news_id) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/${newsId}`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/${news_id}`, {
       headers: getAuthHeaders(),
     });
     return data;
@@ -238,7 +238,7 @@ export const fetchNewsById = async (newsId) => {
 // Create new news article
 export const createNewsArticle = async (newsData) => {
   try {
-    const { data } = await axios.post(`${API_BASE_URL}/news`, newsData, {
+    const { data } = await axios.post(`${API_BASE_URL}/news/`, newsData, {
       headers: {
         ...getAuthHeaders(),
         "Content-Type": "application/json",
@@ -252,9 +252,9 @@ export const createNewsArticle = async (newsData) => {
 };
 
 // Update news article
-export const updateNewsArticle = async (newsId, updatedData) => {
+export const updateNewsArticle = async (news_id, updatedData) => {
   try {
-    const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, updatedData, {
+    const { data } = await axios.put(`${API_BASE_URL}/news/${news_id}`, updatedData, {
       headers: {
         ...getAuthHeaders(),
         "Content-Type": "application/json",
@@ -268,9 +268,9 @@ export const updateNewsArticle = async (newsId, updatedData) => {
 };
 
 // Delete news article
-export const deleteNewsArticle = async (newsId) => {
+export const deleteNewsArticle = async (news_id) => {
   try {
-    await axios.delete(`${API_BASE_URL}/news/${newsId}`, {
+    await axios.delete(`${API_BASE_URL}/news/${news_id}`, {
       headers: getAuthHeaders(),
     });
   } catch (error) {
