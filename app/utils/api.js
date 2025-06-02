@@ -186,7 +186,7 @@ export const fetchUsers = async () => {
 // Fetch latest news articles (for dashboard)
 export const fetchLatestNews = async (limit = 5) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/latest`, {
+    const { data } = await axios.get(`${API_BASE_URL}/latest`, {
       headers: getAuthHeaders(),
       params: {
         size: limit,
