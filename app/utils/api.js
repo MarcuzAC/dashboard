@@ -183,6 +183,29 @@ export const fetchUsers = async () => {
     throw new Error(error.response?.data?.detail || "Failed to fetch users");
   }
 };
+// Fetch latest news articles (for dashboard)
+export const fetchLatestNews = async (limit = 5) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/news/latest`, {
+      headers: getAuthHeaders(),
+      params: {
+        size: limit,
+        published_only: true
+      }
+    });
+    
+    // If the API returns paginated response (assuming NewsListResponse format)
+    if (data && data.items) {
+      return data.items;
+    }
+    
+    // If API returns array directly
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch latest news:", error);
+    return [];
+  }
+};
 
 // Update User
 export const updateUser = async (userId, updatedData) => {
