@@ -232,77 +232,112 @@ export const deleteUser = async (userId) => {
   }
 };
 
-// Get all news articles
-export const fetchAllNews = async () => {
+// News API
+export const fetchAllNews = async (page = 1, size = 10, publishedOnly = true) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/news`, {
       headers: getAuthHeaders(),
+      params: {
+        page,
+        size,
+        published_only: publishedOnly
+      }
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch news:", error);
+    console.error('Failed to fetch news:', error);
+    return { items: [], total: 0, page, size };
+  }
+};
+
+export const getLatestNews = async (limit = 5) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/news/latest`, {
+      headers: getAuthHeaders(),
+      params: { limit }
+    });
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch latest news:', error);
     return [];
   }
 };
 
-// Get single news article by ID
 export const fetchNewsById = async (news_id) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/news/${news_id}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders()
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch news article:", error);
-    throw error.response?.data?.detail || "News article not found";
+    console.error('Failed to fetch news article:', error);
+    throw error.response?.data?.detail || 'News article not found';
   }
 };
 
-// Create new news article
-export const createNewsArticle = async (newsData) => {
+export const createNewsArticle = async (newsData, imageFile = null) => {
   try {
-    const { data } = await axios.post(`${API_BASE_URL}/news/`, newsData, {
+    const formData = new FormData();
+    formData.append('news_data', JSON.stringify({
+      title: newsData.title,
+      content: newsData.content,
+      is_published: newsData.is_published || true
+    }));
+    
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    const { data } = await axios.post(`${API_BASE_URL}/news`, formData, {
       headers: {
         ...getAuthHeaders(),
-        "Content-Type": "application/json",
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return data;
   } catch (error) {
-    console.error("Failed to create news article:", error);
-    throw error.response?.data?.detail || "Failed to create news article";
+    console.error('Failed to create news article:', error);
+    throw error.response?.data?.detail || 'Failed to create news article';
   }
 };
 
-// Update news article
-export const updateNewsArticle = async (news_id, updatedData) => {
+export const updateNewsArticle = async (news_id, newsData, imageFile = null) => {
   try {
-    const { data } = await axios.put(`${API_BASE_URL}/news/${news_id}`, updatedData, {
+    const formData = new FormData();
+    formData.append('news_data', JSON.stringify({
+      title: newsData.title,
+      content: newsData.content,
+      is_published: newsData.is_published
+    }));
+    
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    const { data } = await axios.put(`${API_BASE_URL}/news/${news_id}`, formData, {
       headers: {
         ...getAuthHeaders(),
-        "Content-Type": "application/json",
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return data;
   } catch (error) {
-    console.error("Failed to update news article:", error);
-    throw error.response?.data?.detail || "Failed to update news article";
+    console.error('Failed to update news article:', error);
+    throw error.response?.data?.detail || 'Failed to update news article';
   }
 };
 
-// Delete news article
 export const deleteNewsArticle = async (news_id) => {
   try {
     await axios.delete(`${API_BASE_URL}/news/${news_id}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders()
     });
   } catch (error) {
-    console.error("Failed to delete news article:", error);
-    throw error.response?.data?.detail || "Failed to delete news article";
+    console.error('Failed to delete news article:', error);
+    throw error.response?.data?.detail || 'Failed to delete news article';
   }
 };
 
-// Upload news image (if used separately)
 export const uploadNewsImage = async (file) => {
   try {
     const formData = new FormData();
@@ -311,12 +346,12 @@ export const uploadNewsImage = async (file) => {
     const { data } = await axios.post(`${API_BASE_URL}/news/upload-image`, formData, {
       headers: {
         ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data",
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return data;
   } catch (error) {
-    console.error("Failed to upload news image:", error);
-    throw error.response?.data?.detail || "Failed to upload image";
+    console.error('Failed to upload news image:', error);
+    throw error.response?.data?.detail || 'Failed to upload image';
   }
 };
