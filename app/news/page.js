@@ -73,7 +73,7 @@ export default function NewsPage() {
       if (formData.image) {
         try {
           const uploadResponse = await uploadNewsImage(formData.image)
-          imageUrl = uploadResponse.url // Assuming API returns { url: string }
+          imageUrl = uploadResponse.url 
         } catch (error) {
           toast.error(error.message || 'Failed to upload image')
           return
@@ -83,7 +83,7 @@ export default function NewsPage() {
       const newsPayload = {
         title: formData.title,
         content: formData.content,
-        ...(imageUrl && { image_url: imageUrl }) // Changed to match API expected field
+        ...(imageUrl && { image_url: imageUrl }) 
       }
 
       if (editingId) {
