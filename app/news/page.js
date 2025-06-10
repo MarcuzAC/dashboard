@@ -8,7 +8,7 @@ import {
   updateNews, 
   deleteNews,
   uploadNewsImage,
-  fetchLatestNews
+  getLatestNews
 } from '../utils/api'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,8 @@ export default function NewsPage() {
   const [news, setNews] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [latestNews, setLatestNews] = useState([])
+  const [isLoadingLatest, setIsLoadingLatest] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -33,6 +35,20 @@ export default function NewsPage() {
     size: 10,
     total: 0
   })
+
+  // Fetch latest news articles
+  const loadLatestNews = async () => {
+    try {
+      setIsLoadingLatest(true)
+      const latest = await getLatestNews(3) // Get 3 latest articles
+      setLatestNews(latest)
+    } catch (error) {
+      console.error('Failed to fetch latest news:', error)
+      toast.error('Failed to load latest news')
+    } finally {
+      setIsLoadingLatest(false)
+    }
+  }
 
   // Fetch news articles with pagination
   const loadNews = async (page = pagination.page, size = pagination.size) => {
@@ -60,9 +76,19 @@ export default function NewsPage() {
     }
   }
 
-  // Initial load and when search changes
+  // Initial load
   useEffect(() => {
-    loadNews(1) // Reset to page 1 when search changes
+    const initializeData = async () => {
+      await Promise.all([loadLatestNews(), loadNews(1)])
+    }
+    initializeData()
+  }, [])
+
+  // Reload when search changes
+  useEffect(() => {
+    if (searchQuery !== '') {
+      loadNews(1)
+    }
   }, [searchQuery])
 
   // Handle form input changes
@@ -124,8 +150,8 @@ export default function NewsPage() {
         toast.success('News article created successfully')
       }
 
-      // Refresh news list
-      loadNews()
+      // Refresh both news lists
+      await Promise.all([loadNews(), loadLatestNews()])
       resetForm()
     } catch (error) {
       toast.error(error.message || 'Operation failed')
@@ -166,7 +192,8 @@ export default function NewsPage() {
       setIsLoading(true)
       await deleteNews(news_id)
       toast.success('News article deleted successfully')
-      loadNews() // Refresh the list
+      // Refresh both news lists
+      await Promise.all([loadNews(), loadLatestNews()])
     } catch (error) {
       toast.error(error.message || 'Failed to delete news article')
       console.error(error)
@@ -197,6 +224,41 @@ export default function NewsPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">News Management</h1>
       
+      {/* Latest News Section */}
+      {!isLoadingLatest && latestNews.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Latest News</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {latestNews.map(article => (
+              <div key={article.news_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                {article.image_url && (
+                  <img 
+                    src={article.image_url} 
+                    alt={article.title}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+                <div className="p-4">
+                  <h3 className="font-medium text-lg mb-2">{article.title}</h3>
+                  <p className="text-gray-500 text-sm mb-3">
+                    {new Date(article.created_at).toLocaleDateString()}
+                  </p>
+                  <p className="text-gray-700 line-clamp-2 mb-4">
+                    {article.content}
+                  </p>
+                  <Link 
+                    href={`/news/${article.news_id}`}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Read more →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
@@ -394,12 +456,26 @@ export default function NewsPage() {
               ))}
             </div>
 
-            <Pagination
-              currentPage={pagination.page}
-              totalItems={pagination.total}
-              itemsPerPage={pagination.size}
-              onPageChange={handlePageChange}
-            />
+            {/* Pagination Component - Make sure to implement this or replace with your own */}
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="px-4 py-2 mx-1 border rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="px-4 py-2">
+                Page {pagination.page} of {Math.ceil(pagination.total / pagination.size)}
+              </span>
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page * pagination.size >= pagination.total}
+                className="px-4 py-2 mx-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
           </>
         )}
       </div>
