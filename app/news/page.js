@@ -1,6 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { 
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
+import {
   fetchNewsList,
   searchNews,
   fetchNewsItem, 
@@ -8,20 +11,26 @@ import {
   updateNews, 
   deleteNews,
   uploadNewsImage,
-  getLatestNews
+
 } from '../utils/api'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { toast } from 'react-toastify'
 
 export default function NewsPage() {
   const router = useRouter()
-  const [news, setNews] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [latestNews, setLatestNews] = useState([])
-  const [isLoadingLatest, setIsLoadingLatest] = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [state, setState] = useState({
+    news: [],
+    latestNews: [],
+    isLoading: true,
+    isLoadingLatest: false,
+    isCreating: false,
+    editingId: null,
+    searchQuery: '',
+    pagination: {
+      page: 1,
+      size: 10,
+      total: 0
+    }
+  })
+
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -29,52 +38,33 @@ export default function NewsPage() {
     image: null
   })
   const [previewImage, setPreviewImage] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [pagination, setPagination] = useState({
-    page: 1,
-    size: 10,
-    total: 0
-  })
 
-  // Fetch latest news articles
-  const loadLatestNews = async () => {
-    try {
-      setIsLoadingLatest(true)
-      const latest = await getLatestNews(3) // Get 3 latest articles
-      setLatestNews(latest)
-    } catch (error) {
-      console.error('Failed to fetch latest news:', error)
-      toast.error('Failed to load latest news')
-    } finally {
-      setIsLoadingLatest(false)
-    }
-  }
 
-  // Fetch news articles with pagination
-  const loadNews = async (page = pagination.page, size = pagination.size) => {
+
+  const loadNews = useCallback(async (page = state.pagination.page, size = state.pagination.size) => {
     try {
-      setIsLoading(true)
-      let response
+      setState(prev => ({ ...prev, isLoading: true }))
       
-      if (searchQuery) {
-        response = await searchNews(searchQuery, page, size)
-      } else {
-        response = await fetchNewsList(page, size)
-      }
+      const response = state.searchQuery 
+        ? await searchNews(state.searchQuery, page, size)
+        : await fetchNewsList(page, size)
 
-      setNews(response.items)
-      setPagination(prev => ({
+      setState(prev => ({
         ...prev,
-        page,
-        total: response.total
+        news: response.items,
+        pagination: {
+          ...prev.pagination,
+          page,
+          total: response.total
+        }
       }))
     } catch (error) {
       toast.error(error.message || 'Failed to load news articles')
       console.error(error)
     } finally {
-      setIsLoading(false)
+      setState(prev => ({ ...prev, isLoading: false }))
     }
-  }
+  }, [state.searchQuery, state.pagination.size])
 
   // Initial load
   useEffect(() => {
@@ -82,14 +72,7 @@ export default function NewsPage() {
       await Promise.all([loadLatestNews(), loadNews(1)])
     }
     initializeData()
-  }, [])
-
-  // Reload when search changes
-  useEffect(() => {
-    if (searchQuery !== '') {
-      loadNews(1)
-    }
-  }, [searchQuery])
+  }, [loadLatestNews, loadNews])
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -120,7 +103,7 @@ export default function NewsPage() {
     e.preventDefault()
     
     try {
-      setIsLoading(true)
+      setState(prev => ({ ...prev, isLoading: true }))
       
       let imageUrl = null
       if (formData.image) {
@@ -140,12 +123,10 @@ export default function NewsPage() {
         ...(imageUrl && { image_url: imageUrl }) 
       }
 
-      if (editingId) {
-        // Update existing article
-        await updateNews(editingId, newsPayload)
+      if (state.editingId) {
+        await updateNews(state.editingId, newsPayload)
         toast.success('News article updated successfully')
       } else {
-        // Create new article
         await createNews(newsPayload)
         toast.success('News article created successfully')
       }
@@ -157,18 +138,17 @@ export default function NewsPage() {
       toast.error(error.message || 'Operation failed')
       console.error(error)
     } finally {
-      setIsLoading(false)
+      setState(prev => ({ ...prev, isLoading: false }))
     }
   }
 
   // Edit an article
   const handleEdit = async (article) => {
     try {
-      setIsLoading(true)
-      // Fetch full article details in case we need more data
+      setState(prev => ({ ...prev, isLoading: true }))
       const fullArticle = await fetchNewsItem(article.news_id)
       
-      setEditingId(article.news_id)
+      setState(prev => ({ ...prev, editingId: article.news_id }))
       setFormData({
         title: fullArticle.title,
         content: fullArticle.content,
@@ -180,7 +160,7 @@ export default function NewsPage() {
     } catch (error) {
       toast.error(error.message || 'Failed to load article details')
     } finally {
-      setIsLoading(false)
+      setState(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -189,16 +169,15 @@ export default function NewsPage() {
     if (!confirm('Are you sure you want to delete this news article?')) return
     
     try {
-      setIsLoading(true)
+      setState(prev => ({ ...prev, isLoading: true }))
       await deleteNews(news_id)
       toast.success('News article deleted successfully')
-      // Refresh both news lists
       await Promise.all([loadNews(), loadLatestNews()])
     } catch (error) {
       toast.error(error.message || 'Failed to delete news article')
       console.error(error)
     } finally {
-      setIsLoading(false)
+      setState(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -211,8 +190,7 @@ export default function NewsPage() {
       image: null
     })
     setPreviewImage(null)
-    setEditingId(null)
-    setIsCreating(false)
+    setState(prev => ({ ...prev, editingId: null, isCreating: false }))
   }
 
   // Handle page change
@@ -220,22 +198,51 @@ export default function NewsPage() {
     loadNews(newPage)
   }
 
+  // Handle search query change with debounce
+  const handleSearchChange = (e) => {
+    const query = e.target.value
+    setState(prev => ({ ...prev, searchQuery: query }))
+  }
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (state.searchQuery !== '') {
+        loadNews(1)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [state.searchQuery, loadNews])
+
+  const {
+    news,
+    latestNews,
+    isLoading,
+    isLoadingLatest,
+    isCreating,
+    editingId,
+    searchQuery,
+    pagination
+  } = state
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <h1 className="text-3xl font-bold mb-8">News Management</h1>
       
       {/* Latest News Section */}
       {!isLoadingLatest && latestNews.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <section className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Latest News</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestNews.map(article => (
-              <div key={article.news_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <article key={article.news_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 {article.image_url && (
                   <img 
                     src={article.image_url} 
                     alt={article.title}
                     className="w-full h-48 object-cover"
+                    loading="lazy"
                   />
                 )}
                 <div className="p-4">
@@ -249,30 +256,32 @@ export default function NewsPage() {
                   <Link 
                     href={`/news/${article.news_id}`}
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    prefetch={false}
                   >
                     Read more →
                   </Link>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Search Bar */}
       <div className="mb-6">
-        <div className="relative">
+        <div className="relative max-w-md">
           <input
             type="text"
             placeholder="Search news..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => setState(prev => ({ ...prev, searchQuery: '' }))}
               className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+              aria-label="Clear search"
             >
               ✕
             </button>
@@ -281,15 +290,15 @@ export default function NewsPage() {
       </div>
       
       {/* Create/Edit Form */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <section className="bg-white rounded-lg shadow-md p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
             {editingId ? 'Edit News Article' : isCreating ? 'Create New Article' : 'News Articles'}
           </h2>
           {!isCreating && !editingId && (
             <button 
-              onClick={() => setIsCreating(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => setState(prev => ({ ...prev, isCreating: true }))}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
               disabled={isLoading}
             >
               Create New
@@ -300,36 +309,44 @@ export default function NewsPage() {
         {(isCreating || editingId) && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title*</label>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title*
+              </label>
               <input
                 type="text"
+                id="title"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 required
+                maxLength={100}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Content*</label>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                Content*
+              </label>
               <textarea
+                id="content"
                 name="content"
                 value={formData.content}
                 onChange={handleChange}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 required
+                maxLength={5000}
               />
             </div>
 
             <div className="flex items-center">
               <input
                 type="checkbox"
+                id="publish-checkbox"
                 name="is_published"
                 checked={formData.is_published}
                 onChange={handleChange}
-                id="publish-checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="publish-checkbox" className="ml-2 block text-sm text-gray-700">
@@ -362,14 +379,14 @@ export default function NewsPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-400"
               >
                 {isLoading ? 'Processing...' : editingId ? 'Update' : 'Create'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
                 disabled={isLoading}
               >
                 Cancel
@@ -377,10 +394,10 @@ export default function NewsPage() {
             </div>
           </form>
         )}
-      </div>
+      </section>
 
       {/* News List */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <section className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">All News Articles</h2>
           <div className="text-sm text-gray-500">
@@ -390,16 +407,19 @@ export default function NewsPage() {
         </div>
         
         {isLoading && !news.length ? (
-          <div className="text-center py-8">Loading news articles...</div>
-        ) : news.length === 0 ? (
           <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+            <p>Loading news articles...</p>
+          </div>
+        ) : news.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
             {searchQuery ? 'No matching articles found' : 'No news articles found'}
           </div>
         ) : (
           <>
             <div className="space-y-6 mb-6">
               {news.map(article => (
-                <div key={article.news_id} className="border-b border-gray-200 pb-6 last:border-0">
+                <article key={article.news_id} className="border-b border-gray-200 pb-6 last:border-0">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg font-medium">{article.title}</h3>
@@ -417,15 +437,17 @@ export default function NewsPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(article)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
                         disabled={isLoading}
+                        aria-label={`Edit ${article.title}`}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(article.news_id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600 hover:text-red-800 transition-colors"
                         disabled={isLoading}
+                        aria-label={`Delete ${article.title}`}
                       >
                         Delete
                       </button>
@@ -437,6 +459,7 @@ export default function NewsPage() {
                       src={article.image_url} 
                       alt={article.title}
                       className="mt-3 h-48 w-full object-cover rounded"
+                      loading="lazy"
                     />
                   )}
                   
@@ -447,21 +470,23 @@ export default function NewsPage() {
                   <div className="mt-3 flex justify-between items-center">
                     <Link 
                       href={`/news/${article.news_id}`}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      prefetch={false}
                     >
                       Read more →
                     </Link>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
 
-            {/* Pagination Component - Make sure to implement this or replace with your own */}
+            {/* Pagination */}
             <div className="flex justify-center mt-6">
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 mx-1 border rounded disabled:opacity-50"
+                disabled={pagination.page === 1 || isLoading}
+                className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                aria-label="Previous page"
               >
                 Previous
               </button>
@@ -470,15 +495,16 @@ export default function NewsPage() {
               </span>
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page * pagination.size >= pagination.total}
-                className="px-4 py-2 mx-1 border rounded disabled:opacity-50"
+                disabled={pagination.page * pagination.size >= pagination.total || isLoading}
+                className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                aria-label="Next page"
               >
                 Next
               </button>
             </div>
           </>
         )}
-      </div>
+      </section>
     </div>
   )
 }
