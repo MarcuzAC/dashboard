@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useEffect, useState } from "react";
-import { fetchDashboardStats, fetchRecentVideos, fetchLatestNews } from "../utils/api";
+import { fetchDashboardStats, fetchRecentVideos, getLatestNews,getNewsList } from "../utils/api";
 import { FaUsers, FaVideo, FaList, FaDollarSign, FaNewspaper } from "react-icons/fa";
 
 const Dashboard = () => {
@@ -17,7 +17,8 @@ const Dashboard = () => {
         const [statsData, videosData, newsData] = await Promise.all([
           fetchDashboardStats(),
           fetchRecentVideos(),
-          fetchLatestNews()
+          getLatestNews(),
+          getNewsList()
         ]);
         setStats(statsData);
         setVideos(videosData);

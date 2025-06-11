@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import {
-  fetchNewsList,
+  getNewsList,
   searchNews,
-  getNewsItem, 
-  createNews, 
-  updateNews, 
+  getNewsById,
+  getLatestNews,
+  createNews,
+  updateNews,
   deleteNews,
   uploadNewsImage,
-
 } from '../utils/api'
 
 export default function NewsPage() {
@@ -39,7 +39,25 @@ export default function NewsPage() {
   })
   const [previewImage, setPreviewImage] = useState(null)
 
-
+  const loadLatestNews = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, isLoadingLatest: true }))
+      const data = await getLatestNews()
+      setState(prev => ({ 
+        ...prev, 
+        latestNews: Array.isArray(data) ? data : [],
+        isLoadingLatest: false 
+      }))
+    } catch (error) {
+      toast.error(error.message || 'Failed to load latest news')
+      console.error(error)
+      setState(prev => ({ 
+        ...prev, 
+        latestNews: [],
+        isLoadingLatest: false 
+      }))
+    }
+  }, [])
 
   const loadNews = useCallback(async (page = state.pagination.page, size = state.pagination.size) => {
     try {
@@ -47,22 +65,26 @@ export default function NewsPage() {
       
       const response = state.searchQuery 
         ? await searchNews(state.searchQuery, page, size)
-        : await fetchNewsList(page, size)
+        : await getNewsList(page, size)
 
       setState(prev => ({
         ...prev,
-        news: response.items,
+        news: Array.isArray(response?.items) ? response.items : [],
         pagination: {
           ...prev.pagination,
           page,
-          total: response.total
-        }
+          total: Number.isInteger(response?.total) ? response.total : 0
+        },
+        isLoading: false
       }))
     } catch (error) {
       toast.error(error.message || 'Failed to load news articles')
       console.error(error)
-    } finally {
-      setState(prev => ({ ...prev, isLoading: false }))
+      setState(prev => ({ 
+        ...prev, 
+        news: [],
+        isLoading: false 
+      }))
     }
   }, [state.searchQuery, state.pagination.size])
 
@@ -85,7 +107,7 @@ export default function NewsPage() {
 
   // Handle image upload
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (file) {
       setFormData(prev => ({ ...prev, image: file }))
       
@@ -109,7 +131,7 @@ export default function NewsPage() {
       if (formData.image) {
         try {
           const uploadResponse = await uploadNewsImage(formData.image)
-          imageUrl = uploadResponse.url 
+          imageUrl = uploadResponse?.url || null
         } catch (error) {
           toast.error(error.message || 'Failed to upload image')
           return
@@ -146,16 +168,16 @@ export default function NewsPage() {
   const handleEdit = async (article) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }))
-      const fullArticle = await fetchNewsItem(article.news_id)
+      const fullArticle = await getNewsById(article.news_id)
       
       setState(prev => ({ ...prev, editingId: article.news_id }))
       setFormData({
-        title: fullArticle.title,
-        content: fullArticle.content,
-        is_published: fullArticle.is_published,
+        title: fullArticle?.title || '',
+        content: fullArticle?.content || '',
+        is_published: fullArticle?.is_published || true,
         image: null
       })
-      setPreviewImage(fullArticle.image_url || null)
+      setPreviewImage(fullArticle?.image_url || null)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
       toast.error(error.message || 'Failed to load article details')
@@ -231,35 +253,37 @@ export default function NewsPage() {
       <h1 className="text-3xl font-bold mb-8">News Management</h1>
       
       {/* Latest News Section */}
-      {!isLoadingLatest && latestNews.length > 0 && (
+      {!isLoadingLatest && latestNews?.length > 0 && (
         <section className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Latest News</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestNews.map(article => (
-              <article key={article.news_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                {article.image_url && (
+              <article key={article?.news_id || Math.random()} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                {article?.image_url && (
                   <img 
                     src={article.image_url} 
-                    alt={article.title}
+                    alt={article?.title || 'News image'}
                     className="w-full h-48 object-cover"
                     loading="lazy"
                   />
                 )}
                 <div className="p-4">
-                  <h3 className="font-medium text-lg mb-2">{article.title}</h3>
+                  <h3 className="font-medium text-lg mb-2">{article?.title || 'Untitled'}</h3>
                   <p className="text-gray-500 text-sm mb-3">
-                    {new Date(article.created_at).toLocaleDateString()}
+                    {article?.created_at ? new Date(article.created_at).toLocaleDateString() : ''}
                   </p>
                   <p className="text-gray-700 line-clamp-2 mb-4">
-                    {article.content}
+                    {article?.content || ''}
                   </p>
-                  <Link 
-                    href={`/news/${article.news_id}`}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    prefetch={false}
-                  >
-                    Read more →
-                  </Link>
+                  {article?.news_id && (
+                    <Link 
+                      href={`/news/${article.news_id}`}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      prefetch={false}
+                    >
+                      Read more →
+                    </Link>
+                  )}
                 </div>
               </article>
             ))}
@@ -419,89 +443,93 @@ export default function NewsPage() {
           <>
             <div className="space-y-6 mb-6">
               {news.map(article => (
-                <article key={article.news_id} className="border-b border-gray-200 pb-6 last:border-0">
+                <article key={article?.news_id || Math.random()} className="border-b border-gray-200 pb-6 last:border-0">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-medium">{article.title}</h3>
+                      <h3 className="text-lg font-medium">{article?.title || 'Untitled'}</h3>
                       <p className="text-gray-500 text-sm mt-1">
-                        {new Date(article.created_at).toLocaleDateString()} • 
+                        {article?.created_at ? new Date(article.created_at).toLocaleDateString() : ''} • 
                         <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          article.is_published 
+                          article?.is_published 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {article.is_published ? 'Published' : 'Draft'}
+                          {article?.is_published ? 'Published' : 'Draft'}
                         </span>
                       </p>
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleEdit(article)}
+                        onClick={() => article?.news_id && handleEdit(article)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                         disabled={isLoading}
-                        aria-label={`Edit ${article.title}`}
+                        aria-label={`Edit ${article?.title || 'article'}`}
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(article.news_id)}
+                        onClick={() => article?.news_id && handleDelete(article.news_id)}
                         className="text-red-600 hover:text-red-800 transition-colors"
                         disabled={isLoading}
-                        aria-label={`Delete ${article.title}`}
+                        aria-label={`Delete ${article?.title || 'article'}`}
                       >
                         Delete
                       </button>
                     </div>
                   </div>
                   
-                  {article.image_url && (
+                  {article?.image_url && (
                     <img 
                       src={article.image_url} 
-                      alt={article.title}
+                      alt={article?.title || 'News image'}
                       className="mt-3 h-48 w-full object-cover rounded"
                       loading="lazy"
                     />
                   )}
                   
                   <p className="mt-3 text-gray-700 line-clamp-3">
-                    {article.content}
+                    {article?.content || ''}
                   </p>
                   
                   <div className="mt-3 flex justify-between items-center">
-                    <Link 
-                      href={`/news/${article.news_id}`}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      prefetch={false}
-                    >
-                      Read more →
-                    </Link>
+                    {article?.news_id && (
+                      <Link 
+                        href={`/news/${article.news_id}`}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        prefetch={false}
+                      >
+                        Read more →
+                      </Link>
+                    )}
                   </div>
                 </article>
               ))}
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1 || isLoading}
-                className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                aria-label="Previous page"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2">
-                Page {pagination.page} of {Math.ceil(pagination.total / pagination.size)}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page * pagination.size >= pagination.total || isLoading}
-                className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                aria-label="Next page"
-              >
-                Next
-              </button>
-            </div>
+            {pagination.total > pagination.size && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1 || isLoading}
+                  className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                  aria-label="Previous page"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2">
+                  Page {pagination.page} of {Math.ceil(pagination.total / pagination.size)}
+                </span>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page * pagination.size >= pagination.total || isLoading}
+                  className="px-4 py-2 mx-1 border rounded disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                  aria-label="Next page"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>

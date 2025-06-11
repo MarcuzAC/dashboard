@@ -308,7 +308,7 @@ export const deleteNews = async (news_id) => {
   }
 };
 
-export const fetchLatestNews = async (limit = 5) => {
+export const getLatestNews = async (limit = 5) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/latest/`, {
       headers: getAuthHeaders(),
