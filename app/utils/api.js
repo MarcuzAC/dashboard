@@ -235,7 +235,7 @@ export const createNews = async (newsData, imageFile) => {
 
 export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/`, {
       headers: getAuthHeaders(),
       params: {
         page,
@@ -257,7 +257,7 @@ export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => 
 
 export const getNewsById = async (newsId) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/${newsId}`, {
+    const { data } = await axios.get(`${API_BASE_URL}/${newsId}`, {
       headers: getAuthHeaders()
     });
     return data;
@@ -281,7 +281,7 @@ export const updateNews = async (newsId, newsData, imageFile) => {
       formData.append('image', imageFile);
     }
 
-    const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, formData, {
+    const { data } = await axios.put(`${API_BASE_URL}/${newsId}`, formData, {
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
@@ -296,9 +296,9 @@ export const updateNews = async (newsId, newsData, imageFile) => {
   }
 };
 
-export const deleteNews = async (newsId) => {
+export const deleteNews = async (news_id) => {
   try {
-    await axios.delete(`${API_BASE_URL}/news/${newsId}`, {
+    await axios.delete(`${API_BASE_URL}/news/${news_id}`, {
       headers: getAuthHeaders()
     });
   } catch (error) {
@@ -310,7 +310,7 @@ export const deleteNews = async (newsId) => {
 
 export const fetchLatestNews = async (limit = 5) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/latest/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/latest/`, {
       headers: getAuthHeaders(),
       params: { limit }
     });
@@ -323,7 +323,7 @@ export const fetchLatestNews = async (limit = 5) => {
 
 export const searchNews = async (query, page = 1, size = 10, publishedOnly = true) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/search/`, {
       headers: getAuthHeaders(),
       params: {
         query,
@@ -349,7 +349,7 @@ export const uploadNewsImage = async (imageFile) => {
     const formData = new FormData();
     formData.append('file', imageFile);
 
-    const { data } = await axios.post(`${API_BASE_URL}/news/upload-image/`, formData, {
+    const { data } = await axios.post(`${API_BASE_URL}/upload-image/`, formData, {
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
