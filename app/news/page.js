@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 import {
   fetchNewsList,
   searchNews,
-  fetchNewsItem, 
+  getNewsItem, 
   createNews, 
   updateNews, 
   deleteNews,
