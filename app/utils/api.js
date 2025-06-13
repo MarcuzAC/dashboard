@@ -227,15 +227,15 @@ export const createNews = async (newsData, imageFile) => {
     return data;
   } catch (error) {
     const errorMsg = error.response?.data?.detail || 
-                   error.response?.data?.message || 
-                   "Failed to create news";
+                     error.response?.data?.message || 
+                     "Failed to create news";
     throw new Error(errorMsg);
   }
 };
 
 export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news`, {
       headers: getAuthHeaders(),
       params: {
         page,
@@ -257,13 +257,13 @@ export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => 
 
 export const getNewsById = async (newsId) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/${newsId}`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/${newsId}`, {
       headers: getAuthHeaders()
     });
     return data;
   } catch (error) {
     const errorMsg = error.response?.data?.detail || 
-                   "News item not found";
+                     "News item not found";
     throw new Error(errorMsg);
   }
 };
@@ -281,7 +281,7 @@ export const updateNews = async (newsId, newsData, imageFile) => {
       formData.append('image', imageFile);
     }
 
-    const { data } = await axios.put(`${API_BASE_URL}/${newsId}`, formData, {
+    const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, formData, {
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
@@ -290,8 +290,8 @@ export const updateNews = async (newsId, newsData, imageFile) => {
     return data;
   } catch (error) {
     const errorMsg = error.response?.data?.detail || 
-                   error.response?.data?.message || 
-                   "Failed to update news";
+                     error.response?.data?.message || 
+                     "Failed to update news";
     throw new Error(errorMsg);
   }
 };
@@ -303,14 +303,14 @@ export const deleteNews = async (news_id) => {
     });
   } catch (error) {
     const errorMsg = error.response?.data?.detail || 
-                   "Failed to delete news";
+                     "Failed to delete news";
     throw new Error(errorMsg);
   }
 };
 
 export const getLatestNews = async (limit = 5) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/latest/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/latest/`, {
       headers: getAuthHeaders(),
       params: { limit }
     });
@@ -323,7 +323,7 @@ export const getLatestNews = async (limit = 5) => {
 
 export const searchNews = async (query, page = 1, size = 10, publishedOnly = true) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/search/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
       headers: getAuthHeaders(),
       params: {
         query,
@@ -349,7 +349,7 @@ export const uploadNewsImage = async (imageFile) => {
     const formData = new FormData();
     formData.append('file', imageFile);
 
-    const { data } = await axios.post(`${API_BASE_URL}/upload-image/`, formData, {
+    const { data } = await axios.post(`${API_BASE_URL}/news/upload-image/`, formData, {
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
@@ -358,7 +358,7 @@ export const uploadNewsImage = async (imageFile) => {
     return data;
   } catch (error) {
     const errorMsg = error.response?.data?.detail || 
-                   "Failed to upload image";
+                     "Failed to upload image";
     throw new Error(errorMsg);
   }
 };
