@@ -11,10 +11,9 @@ import {
   createNews,
   updateNews,
   deleteNews,
-  uploadNewsImage,
 } from '../utils/api'
 
-export default function NewsPage() {
+export default function NewsManagementPage() {
   const router = useRouter()
   const [state, setState] = useState({
     news: [],
@@ -88,7 +87,6 @@ export default function NewsPage() {
     }
   }, [state.searchQuery, state.pagination.size])
 
-  // Initial load
   useEffect(() => {
     const initializeData = async () => {
       await Promise.all([loadLatestNews(), loadNews(1)])
@@ -96,7 +94,6 @@ export default function NewsPage() {
     initializeData()
   }, [loadLatestNews, loadNews])
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData(prev => ({ 
@@ -105,13 +102,11 @@ export default function NewsPage() {
     }))
   }
 
-  // Handle image upload
   const handleImageChange = (e) => {
     const file = e.target.files?.[0]
     if (file) {
       setFormData(prev => ({ ...prev, image: file }))
       
-      // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
         setPreviewImage(reader.result)
@@ -120,51 +115,30 @@ export default function NewsPage() {
     }
   }
 
-  // Submit form (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     try {
       setState(prev => ({ ...prev, isLoading: true }))
       
-      let imageUrl = null
-      if (formData.image) {
-        try {
-          const uploadResponse = await uploadNewsImage(formData.image)
-          imageUrl = uploadResponse?.url || null
-        } catch (error) {
-          toast.error(error.message || 'Failed to upload image')
-          return
-        }
-      }
-
-      const newsPayload = {
-        title: formData.title,
-        content: formData.content,
-        is_published: formData.is_published,
-        ...(imageUrl && { image_url: imageUrl }) 
-      }
-
       if (state.editingId) {
-        await updateNews(state.editingId, newsPayload)
+        await updateNews(state.editingId, formData, formData.image)
         toast.success('News article updated successfully')
       } else {
-        await createNews(newsPayload)
+        await createNews(formData, formData.image)
         toast.success('News article created successfully')
       }
 
-      // Refresh both news lists
       await Promise.all([loadNews(), loadLatestNews()])
       resetForm()
     } catch (error) {
       toast.error(error.message || 'Operation failed')
-      console.error(error)
+      console.error('API Error:', error.response || error)
     } finally {
       setState(prev => ({ ...prev, isLoading: false }))
     }
   }
 
-  // Edit an article
   const handleEdit = async (article) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }))
@@ -186,7 +160,6 @@ export default function NewsPage() {
     }
   }
 
-  // Delete an article
   const handleDelete = async (news_id) => {
     if (!confirm('Are you sure you want to delete this news article?')) return
     
@@ -203,7 +176,6 @@ export default function NewsPage() {
     }
   }
 
-  // Reset form
   const resetForm = () => {
     setFormData({
       title: '',
@@ -215,18 +187,15 @@ export default function NewsPage() {
     setState(prev => ({ ...prev, editingId: null, isCreating: false }))
   }
 
-  // Handle page change
   const handlePageChange = (newPage) => {
     loadNews(newPage)
   }
 
-  // Handle search query change with debounce
   const handleSearchChange = (e) => {
     const query = e.target.value
     setState(prev => ({ ...prev, searchQuery: query }))
   }
 
-  // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
       if (state.searchQuery !== '') {
@@ -252,7 +221,6 @@ export default function NewsPage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <h1 className="text-3xl font-bold mb-8">News Management</h1>
       
-      {/* Latest News Section */}
       {!isLoadingLatest && latestNews?.length > 0 && (
         <section className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Latest News</h2>
@@ -291,7 +259,6 @@ export default function NewsPage() {
         </section>
       )}
 
-      {/* Search Bar */}
       <div className="mb-6">
         <div className="relative max-w-md">
           <input
@@ -313,7 +280,6 @@ export default function NewsPage() {
         </div>
       </div>
       
-      {/* Create/Edit Form */}
       <section className="bg-white rounded-lg shadow-md p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
@@ -420,7 +386,6 @@ export default function NewsPage() {
         )}
       </section>
 
-      {/* News List */}
       <section className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">All News Articles</h2>
@@ -506,7 +471,6 @@ export default function NewsPage() {
               ))}
             </div>
 
-            {/* Pagination */}
             {pagination.total > pagination.size && (
               <div className="flex justify-center mt-6">
                 <button

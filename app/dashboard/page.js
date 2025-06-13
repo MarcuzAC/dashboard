@@ -1,8 +1,34 @@
 "use client";
 import React from "react";
 import { useEffect, useState } from "react";
-import { fetchDashboardStats, fetchRecentVideos, getLatestNews,getNewsList } from "../utils/api";
+import { fetchDashboardStats, fetchRecentVideos, getLatestNews } from "../utils/api";
 import { FaUsers, FaVideo, FaList, FaDollarSign, FaNewspaper } from "react-icons/fa";
+import { Bar, Pie, Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -18,14 +44,14 @@ const Dashboard = () => {
           fetchDashboardStats(),
           fetchRecentVideos(),
           getLatestNews(),
-          getNewsList()
         ]);
+        
         setStats(statsData);
         setVideos(videosData);
         setNews(newsData);
       } catch (err) {
-        setError("Failed to load dashboard data.");
-        console.error(err);
+        setError("Failed to load dashboard data. Please try again later.");
+        console.error("Dashboard loading error:", err);
       } finally {
         setLoading(false);
       }
@@ -34,8 +60,70 @@ const Dashboard = () => {
     loadData();
   }, []);
 
+  // Prepare chart data from API response
+  const prepareChartData = () => {
+    if (!stats) return null;
+
+    // User growth chart data
+    const userGrowthData = {
+      labels: stats.user_growth?.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [{
+        label: 'New Users',
+        data: stats.user_growth?.counts || Array(6).fill(0),
+        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 1,
+      }],
+    };
+
+    // Video categories chart data
+    const videoCategoriesData = {
+      labels: stats.video_categories?.names || ['Entertainment', 'Education', 'Sports', 'News'],
+      datasets: [{
+        data: stats.video_categories?.counts || Array(4).fill(25),
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.7)',
+          'rgba(16, 185, 129, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(239, 68, 68, 0.7)',
+        ],
+        borderColor: [
+          'rgba(59, 130, 246, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+        ],
+        borderWidth: 1,
+      }],
+    };
+
+    // Revenue trends chart data
+    const revenueTrendsData = {
+      labels: stats.revenue_trends?.quarters || ['Q1', 'Q2', 'Q3', 'Q4'],
+      datasets: [{
+        label: 'Revenue (MWK)',
+        data: stats.revenue_trends?.amounts || Array(4).fill(0),
+        fill: false,
+        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        tension: 0.1,
+      }],
+    };
+
+    return { userGrowthData, videoCategoriesData, revenueTrendsData };
+  };
+
+  const chartData = prepareChartData();
+
   return (
     <div className="p-4 sm:p-6 md:p-8 bg-gray-50 min-h-screen">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+          <p>{error}</p>
+        </div>
+      )}
+
       {/* Page Title */}
       <div className="mb-6 md:mb-8">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard Overview</h2>
@@ -51,9 +139,71 @@ const Dashboard = () => {
               <StatCard icon={<FaVideo />} title="Total Videos" value={stats?.total_videos || 0} />
               <StatCard icon={<FaList />} title="Categories" value={stats?.total_categories || 0} />
               <StatCard icon={<FaNewspaper />} title="News Articles" value={stats?.total_news || 0} />
-              <StatCard icon={<FaDollarSign />} title="Revenue" value={`MWK${stats?.revenue || 0}.00`} />
+              <StatCard icon={<FaDollarSign />} title="Revenue" value={`MWK ${stats?.total_revenue?.toLocaleString() || 0}`} />
             </>
         }
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* User Growth Chart */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-4">User Growth</h3>
+          <div className="h-56">
+            {loading ? (
+              <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
+            ) : (
+              <Bar 
+                data={chartData?.userGrowthData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'top' } },
+                  scales: { y: { beginAtZero: true } }
+                }} 
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Video Categories Chart */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-4">Video Categories</h3>
+          <div className="h-56">
+            {loading ? (
+              <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
+            ) : (
+              <Pie 
+                data={chartData?.videoCategoriesData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'right' } }
+                }} 
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Revenue Trends Chart */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-4">Revenue Trends</h3>
+          <div className="h-56">
+            {loading ? (
+              <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
+            ) : (
+              <Line 
+                data={chartData?.revenueTrendsData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'top' } },
+                  scales: { y: { beginAtZero: true } }
+                }} 
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content Grid */}
@@ -81,8 +231,14 @@ const Dashboard = () => {
                         {/* Desktop Row */}
                         <tr className="hidden md:table-row hover:bg-gray-50">
                           <td className="px-4 sm:px-6 py-4 text-gray-700">{video.title}</td>
-                          <td className="px-4 sm:px-6 py-4 text-gray-700">{video.category}</td>
-                          <td className="px-4 sm:px-6 py-4 text-gray-700">{new Date(video.created_date).toLocaleDateString()}</td>
+                          <td className="px-4 sm:px-6 py-4 text-gray-700">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                              {video.category}
+                            </span>
+                          </td>
+                          <td className="px-4 sm:px-6 py-4 text-gray-700">
+                            {new Date(video.created_date).toLocaleDateString()}
+                          </td>
                         </tr>
 
                         {/* Mobile Card View */}
@@ -90,8 +246,12 @@ const Dashboard = () => {
                           <td className="block p-4 border-b">
                             <p className="text-sm font-semibold text-gray-900">{video.title}</p>
                             <div className="flex justify-between mt-1">
-                              <p className="text-xs text-gray-500">{video.category}</p>
-                              <p className="text-xs text-gray-400">{new Date(video.created_date).toLocaleDateString()}</p>
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                {video.category}
+                              </span>
+                              <p className="text-xs text-gray-400">
+                                {new Date(video.created_date).toLocaleDateString()}
+                              </p>
                             </div>
                           </td>
                         </tr>
@@ -99,7 +259,9 @@ const Dashboard = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="3" className="px-4 sm:px-6 py-4 text-center text-gray-500">No videos found</td>
+                      <td colSpan="3" className="px-4 sm:px-6 py-4 text-center text-gray-500">
+                        No videos found
+                      </td>
                     </tr>
                   )
                 }
@@ -200,35 +362,18 @@ const SkeletonStatCard = () => {
   );
 };
 
-/* Table Row Component */
-const TableRow = ({ title, category, uploadedBy, date }) => {
-  return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{title}</td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-600">
-        <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{category}</span>
-      </td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-600">{uploadedBy}</td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-500">{date}</td>
-    </tr>
-  );
-};
-
 /* Skeleton Table Row */
 const SkeletonTableRow = () => {
   return (
     <tr className="animate-pulse">
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-        <div className="h-3 md:h-4 bg-gray-200 rounded w-28"></div>
+      <td className="px-4 sm:px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       </td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-        <div className="h-3 md:h-4 bg-gray-200 rounded w-20"></div>
+      <td className="px-4 sm:px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
       </td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-        <div className="h-3 md:h-4 bg-gray-200 rounded w-24"></div>
-      </td>
-      <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-        <div className="h-3 md:h-4 bg-gray-200 rounded w-16"></div>
+      <td className="px-4 sm:px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/3"></div>
       </td>
     </tr>
   );

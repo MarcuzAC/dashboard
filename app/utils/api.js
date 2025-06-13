@@ -1,7 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const API_BASE_URL = "https://backend-1-6tpq.onrender.com"; 
+const API_BASE_URL = "https://backend-1-6tpq.onrender.com";
 
 // Function to get auth headers with token
 const getAuthHeaders = () => {
@@ -17,9 +17,7 @@ export const login = async (username, password) => {
       `${API_BASE_URL}/login`,
       new URLSearchParams({ username, password }),
       {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         withCredentials: true,
       }
     );
@@ -33,9 +31,7 @@ export const login = async (username, password) => {
 export const registerUser = async (userData) => {
   try {
     const { data } = await axios.post(`${API_BASE_URL}/register`, userData, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
     return data;
   } catch (error) {
@@ -43,24 +39,49 @@ export const registerUser = async (userData) => {
   }
 };
 
-// ================= Video Endpoints ================= //
+// ================= Dashboard Stats Endpoint ================= //
 
 export const fetchDashboardStats = async () => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/videos/dashboard/stats`, {
       headers: getAuthHeaders(),
     });
-    return data;
+    return {
+      counts: {
+        users: data.total_users,
+        videos: data.total_videos,
+        categories: data.total_categories,
+        news: data.total_news,
+        revenue: data.total_revenue
+      },
+      userGrowth: data.user_growth,
+      videoCategories: data.video_categories,
+      recentVideos: data.recent_videos
+    };
   } catch (error) {
     console.error("Failed to fetch dashboard stats:", error);
-    return null;
+    return {
+      counts: {
+        users: 0,
+        videos: 0,
+        categories: 0,
+        news: 0,
+        revenue: 0
+      },
+      userGrowth: { months: [], counts: [] },
+      videoCategories: { names: [], counts: [] },
+      recentVideos: []
+    };
   }
 };
 
-export const fetchRecentVideos = async () => {
+// ================= Video Endpoints ================= //
+
+export const fetchRecentVideos = async (limit = 5) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/videos/recent`, {
       headers: getAuthHeaders(),
+      params: { limit }
     });
     return data;
   } catch (error) {
@@ -69,10 +90,11 @@ export const fetchRecentVideos = async () => {
   }
 };
 
-export const fetchVideos = async () => {
+export const fetchVideos = async (params = {}) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/videos`, {
       headers: getAuthHeaders(),
+      params
     });
     return data;
   } catch (error) {
@@ -81,9 +103,20 @@ export const fetchVideos = async () => {
   }
 };
 
+export const getVideoById = async (videoId) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/videos/${videoId}`, {
+      headers: getAuthHeaders()
+    });
+    return data;
+  } catch (error) {
+    throw error.response?.data?.detail || "Failed to fetch video";
+  }
+};
+
 export const uploadVideo = async (formData) => {
   try {
-    const { data } = await axios.post(`${API_BASE_URL}/videos/`, formData, {
+    const { data } = await axios.post(`${API_BASE_URL}/videos`, formData, {
       headers: {
         ...getAuthHeaders(),
         "Content-Type": "multipart/form-data",
@@ -97,19 +130,18 @@ export const uploadVideo = async (formData) => {
 
 export const updateVideo = async (videoId, updatedData) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/videos/${videoId}`, updatedData, {
-      headers: { 
+    const { data } = await axios.put(`${API_BASE_URL}/videos/${videoId}`, updatedData, {
+      headers: {
         ...getAuthHeaders(),
-        "Content-Type": "application/json" 
+        "Content-Type": "application/json",
       },
     });
-    return response.data;
+    return data;
   } catch (error) {
-    console.error("Failed to update video:", error.response ? error.response.data : error.message);
-    throw error;
+    throw error.response?.data?.detail || "Failed to update video";
   }
 };
-  
+
 export const deleteVideo = async (videoId) => {
   try {
     await axios.delete(`${API_BASE_URL}/videos/${videoId}`, {
@@ -117,6 +149,24 @@ export const deleteVideo = async (videoId) => {
     });
   } catch (error) {
     throw error.response?.data?.detail || "Failed to delete video";
+  }
+};
+
+export const searchVideos = async (query, categoryId = null, page = 1, limit = 10) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/videos/search`, {
+      headers: getAuthHeaders(),
+      params: {
+        query,
+        category_id: categoryId,
+        skip: (page - 1) * limit,
+        limit
+      }
+    });
+    return data;
+  } catch (error) {
+    console.error("Failed to search videos:", error);
+    return [];
   }
 };
 
@@ -168,15 +218,29 @@ export const deleteCategory = async (categoryId) => {
 
 // ================= User Endpoints ================= //
 
-export const fetchUsers = async () => {
+export const fetchUsers = async (page = 1, limit = 10) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/users`, {
       headers: getAuthHeaders(),
+      params: {
+        skip: (page - 1) * limit,
+        limit
+      }
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch users:", error);
     throw new Error(error.response?.data?.detail || "Failed to fetch users");
+  }
+};
+
+export const getUserById = async (userId) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/users/${userId}`, {
+      headers: getAuthHeaders()
+    });
+    return data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || "User not found");
   }
 };
 
@@ -187,7 +251,6 @@ export const updateUser = async (userId, updatedData) => {
     });
     return data;
   } catch (error) {
-    console.error("Failed to update user:", error);
     throw new Error(error.response?.data?.detail || "Failed to update user");
   }
 };
@@ -198,40 +261,11 @@ export const deleteUser = async (userId) => {
       headers: getAuthHeaders(),
     });
   } catch (error) {
-    console.error("Failed to delete user:", error);
     throw new Error(error.response?.data?.detail || "Failed to delete user");
   }
 };
 
 // ================= News Endpoints ================= //
-
-export const createNews = async (newsData, imageFile) => {
-  try {
-    const formData = new FormData();
-    formData.append('news_data', JSON.stringify({
-      title: newsData.title,
-      content: newsData.content,
-      is_published: newsData.is_published || false
-    }));
-    
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
-
-    const { data } = await axios.post(`${API_BASE_URL}/news/`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return data;
-  } catch (error) {
-    const errorMsg = error.response?.data?.detail || 
-                     error.response?.data?.message || 
-                     "Failed to create news";
-    throw new Error(errorMsg);
-  }
-};
 
 export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => {
   try {
@@ -240,125 +274,123 @@ export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => 
       params: {
         page,
         size,
-        published_only: publishedOnly
-      }
+        published_only: publishedOnly,
+      },
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch news list:", error);
-    return { 
-      items: [], 
-      total: 0, 
-      page: 1, 
-      size: 10 
-    };
+    return { items: [], total: 0, page: 1, size: 10 };
+  }
+};
+
+export const getLatestNews = async (limit = 5) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/news/latest`, {
+      headers: getAuthHeaders(),
+      params: { limit },
+    });
+    return data;
+  } catch (error) {
+    return [];
   }
 };
 
 export const getNewsById = async (newsId) => {
   try {
     const { data } = await axios.get(`${API_BASE_URL}/news/${newsId}`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
     return data;
   } catch (error) {
-    const errorMsg = error.response?.data?.detail || 
-                     "News item not found";
-    throw new Error(errorMsg);
+    throw new Error(error.response?.data?.detail || "News item not found");
   }
 };
 
-export const updateNews = async (newsId, newsData, imageFile) => {
+export const createNews = async (newsData) => {
   try {
     const formData = new FormData();
-    formData.append('news_data', JSON.stringify({
-      title: newsData.title,
-      content: newsData.content,
-      is_published: newsData.is_published
-    }));
-    
-    if (imageFile) {
-      formData.append('image', imageFile);
+    formData.append("title", newsData.title);
+    formData.append("content", newsData.content);
+    formData.append("is_published", newsData.is_published || false);
+    if (newsData.image) {
+      formData.append("image", newsData.image);
+    }
+
+    const { data } = await axios.post(`${API_BASE_URL}/news`, formData, {
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || "Failed to create news");
+  }
+};
+
+export const updateNews = async (newsId, newsData) => {
+  try {
+    const formData = new FormData();
+    formData.append("title", newsData.title);
+    formData.append("content", newsData.content);
+    formData.append("is_published", newsData.is_published);
+    if (newsData.image) {
+      formData.append("image", newsData.image);
     }
 
     const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, formData, {
       headers: {
         ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return data;
   } catch (error) {
-    const errorMsg = error.response?.data?.detail || 
-                     error.response?.data?.message || 
-                     "Failed to update news";
-    throw new Error(errorMsg);
+    throw new Error(error.response?.data?.detail || "Failed to update news");
   }
 };
 
-export const deleteNews = async (news_id) => {
+export const deleteNews = async (newsId) => {
   try {
-    await axios.delete(`${API_BASE_URL}/news/${news_id}`, {
-      headers: getAuthHeaders()
-    });
-  } catch (error) {
-    const errorMsg = error.response?.data?.detail || 
-                     "Failed to delete news";
-    throw new Error(errorMsg);
-  }
-};
-
-export const getLatestNews = async (limit = 5) => {
-  try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/latest/`, {
+    await axios.delete(`${API_BASE_URL}/news/${newsId}`, {
       headers: getAuthHeaders(),
-      params: { limit }
     });
-    return data;
   } catch (error) {
-    console.error("Failed to fetch latest news:", error);
-    return [];
+    throw new Error(error.response?.data?.detail || "Failed to delete news");
   }
 };
 
-export const searchNews = async (query, page = 1, size = 10, publishedOnly = true) => {
+export const searchNews = async (query, page = 1, size = 10) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/search`, {
       headers: getAuthHeaders(),
       params: {
         query,
         page,
         size,
-        published_only: publishedOnly
-      }
-    });
-    return data;
-  } catch (error) {
-    console.error("Failed to search news:", error);
-    return { 
-      items: [], 
-      total: 0, 
-      page: 1, 
-      size: 10 
-    };
-  }
-};
-
-export const uploadNewsImage = async (imageFile) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', imageFile);
-
-    const { data } = await axios.post(`${API_BASE_URL}/news/upload-image/`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
       },
     });
     return data;
   } catch (error) {
-    const errorMsg = error.response?.data?.detail || 
-                     "Failed to upload image";
-    throw new Error(errorMsg);
+    return { items: [], total: 0, page: 1, size: 10 };
+  }
+};
+
+// ================= Utility Endpoints ================= //
+
+export const uploadImage = async (imageFile) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", imageFile);
+
+    const { data } = await axios.post(`${API_BASE_URL}/upload`, formData, {
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || "Failed to upload image");
   }
 };
