@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useEffect, useState } from "react";
-import { fetchDashboardStats, fetchRecentVideos, getLatestNews } from "../utils/api";
+import { fetchDashboardStats, fetchRecentVideos, getLatestNews, fetchUsers, fetchCategories } from "../utils/api";
 import { FaUsers, FaVideo, FaList, FaDollarSign, FaNewspaper } from "react-icons/fa";
 import { Bar, Pie, Line } from "react-chartjs-2";
 import {
@@ -34,21 +34,27 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [videos, setVideos] = useState([]);
   const [news, setNews] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [statsData, videosData, newsData] = await Promise.all([
+        const [statsData, videosData, newsData, usersData, categoriesData] = await Promise.all([
           fetchDashboardStats(),
           fetchRecentVideos(),
           getLatestNews(),
+          fetchUsers(),
+          fetchCategories(),
         ]);
         
         setStats(statsData);
         setVideos(videosData);
         setNews(newsData);
+        setUsers(usersData);
+        setCategories(categoriesData);
       } catch (err) {
         setError("Failed to load dashboard data. Please try again later.");
         console.error("Dashboard loading error:", err);
@@ -64,35 +70,59 @@ const Dashboard = () => {
   const prepareChartData = () => {
     if (!stats) return null;
 
-    // User growth chart data
+    // User growth chart data - use actual users data if available
+    const userGrowthLabels = users.length > 0 
+      ? [...new Set(users.map(user => new Date(user.created_at).toLocaleDateString('default', { month: 'short' })))]
+      : stats.user_growth?.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    
+    const userGrowthCounts = users.length > 0
+      ? userGrowthLabels.map(month => 
+          users.filter(user => 
+            new Date(user.created_at).toLocaleDateString('default', { month: 'short' }) === month
+          ).length
+        )
+      : stats.user_growth?.counts || Array(6).fill(0);
+
     const userGrowthData = {
-      labels: stats.user_growth?.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      labels: userGrowthLabels,
       datasets: [{
         label: 'New Users',
-        data: stats.user_growth?.counts || Array(6).fill(0),
+        data: userGrowthCounts,
         backgroundColor: 'rgba(59, 130, 246, 0.6)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 1,
       }],
     };
 
-    // Video categories chart data
+    // Video categories chart data - use actual categories data if available
+    const videoCategoriesLabels = categories.length > 0
+      ? categories.map(cat => cat.name)
+      : stats.video_categories?.names || ['Entertainment', 'Education', 'Sports', 'News'];
+    
+    const videoCategoriesCounts = categories.length > 0
+      ? categories.map(cat => cat.video_count || 0)
+      : stats.video_categories?.counts || Array(4).fill(25);
+
     const videoCategoriesData = {
-      labels: stats.video_categories?.names || ['Entertainment', 'Education', 'Sports', 'News'],
+      labels: videoCategoriesLabels,
       datasets: [{
-        data: stats.video_categories?.counts || Array(4).fill(25),
+        data: videoCategoriesCounts,
         backgroundColor: [
           'rgba(59, 130, 246, 0.7)',
           'rgba(16, 185, 129, 0.7)',
           'rgba(245, 158, 11, 0.7)',
           'rgba(239, 68, 68, 0.7)',
-        ],
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(20, 184, 166, 0.7)',
+        ].slice(0, videoCategoriesLabels.length),
         borderColor: [
           'rgba(59, 130, 246, 1)',
           'rgba(16, 185, 129, 1)',
           'rgba(245, 158, 11, 1)',
           'rgba(239, 68, 68, 1)',
-        ],
+          'rgba(139, 92, 246, 1)',
+          'rgba(20, 184, 166, 1)',
+        ].slice(0, videoCategoriesLabels.length),
         borderWidth: 1,
       }],
     };
@@ -135,11 +165,31 @@ const Dashboard = () => {
         {loading
           ? [...Array(5)].map((_, index) => <SkeletonStatCard key={index} />)
           : <>
-              <StatCard icon={<FaUsers />} title="Total Users" value={stats?.total_users || 0} />
-              <StatCard icon={<FaVideo />} title="Total Videos" value={stats?.total_videos || 0} />
-              <StatCard icon={<FaList />} title="Categories" value={stats?.total_categories || 0} />
-              <StatCard icon={<FaNewspaper />} title="News Articles" value={stats?.total_news || 0} />
-              <StatCard icon={<FaDollarSign />} title="Revenue" value={`MWK ${stats?.total_revenue?.toLocaleString() || 0}`} />
+              <StatCard 
+                icon={<FaUsers />} 
+                title="Total Users" 
+                value={users.length || stats?.total_users || 0} 
+              />
+              <StatCard 
+                icon={<FaVideo />} 
+                title="Total Videos" 
+                value={stats?.total_videos || 0} 
+              />
+              <StatCard 
+                icon={<FaList />} 
+                title="Categories" 
+                value={categories.length || stats?.total_categories || 0} 
+              />
+              <StatCard 
+                icon={<FaNewspaper />} 
+                title="News Articles" 
+                value={stats?.total_news || 0} 
+              />
+              <StatCard 
+                icon={<FaDollarSign />} 
+                title="Revenue" 
+                value={`MWK ${stats?.total_revenue?.toLocaleString() || 0}`} 
+              />
             </>
         }
       </div>
