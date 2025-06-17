@@ -210,31 +210,81 @@ export const deleteUser = async (userId) => {
 };
 
 // ================= News Endpoints ================= //
-// (All kept exactly as they were in your original code)
-
 export const createNews = async (newsData, imageFile) => {
   try {
-    const formData = new FormData();
-    formData.append("news_data", JSON.stringify({
-      title: newsData.title,
-      content: newsData.content,
-      is_published: newsData.is_published || false,
-    }));
-
+    // First upload image if exists
+    let imageUrl = null;
     if (imageFile) {
-      formData.append("image", imageFile);
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      
+      const uploadResponse = await axios.post(
+        `${API_BASE_URL}/upload-news-image`, 
+        formData,
+        {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      imageUrl = uploadResponse.data.url;
     }
 
-    const { data } = await axios.post(`${API_BASE_URL}/news/`, formData, {
+    // Then create news with the image URL
+    const { data } = await axios.post(`${API_BASE_URL}/news/`, {
+      ...newsData,
+      image_url: imageUrl
+    }, {
       headers: {
         ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data",
+        'Content-Type': 'application/json',
       },
     });
     return data;
   } catch (error) {
-    const errorMsg = error.response?.data?.detail || error.response?.data?.message || "Failed to create news";
+    const errorMsg = error.response?.data?.detail || 
+                   error.response?.data?.message || 
+                   "Failed to create news";
     throw new Error(errorMsg);
+  }
+};
+
+export const updateNews = async (newsId, newsData, imageFile) => {
+  try {
+    let imageUrl = newsData.image_url;
+    
+    // Upload new image if provided
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      
+      const uploadResponse = await axios.post(
+        `${API_BASE_URL}/upload-news-image`, 
+        formData,
+        {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      imageUrl = uploadResponse.data.url;
+    }
+
+    // Update news with new data
+    const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, {
+      ...newsData,
+      image_url: imageUrl
+    }, {
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || "Failed to update news");
   }
 };
 
@@ -265,30 +315,7 @@ export const getNewsById = async (newsId) => {
   }
 };
 
-export const updateNews = async (newsId, newsData, imageFile) => {
-  try {
-    const formData = new FormData();
-    formData.append("news_data", JSON.stringify({
-      title: newsData.title,
-      content: newsData.content,
-      is_published: newsData.is_published,
-    }));
 
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
-
-    const { data } = await axios.put(`${API_BASE_URL}/news/${newsId}`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return data;
-  } catch (error) {
-    throw new Error(error.response?.data?.detail || "Failed to update news");
-  }
-};
 
 export const deleteNews = async (newsId) => {
   try {
@@ -314,7 +341,7 @@ export const getLatestNews = async (limit = 5) => {
 
 export const searchNews = async (query, page = 1, size = 10, publishedOnly = true) => {
   try {
-    const { data } = await axios.get(`${API_BASE_URL}/search/`, {
+    const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
       headers: getAuthHeaders(),
       params: {
         query,
@@ -329,17 +356,21 @@ export const searchNews = async (query, page = 1, size = 10, publishedOnly = tru
   }
 };
 
-export const uploadNewsImage = async (imageFile) => {
+export const uploadNewsImage = async (newsId, imageFile) => {
   try {
     const formData = new FormData();
-    formData.append("file", imageFile);
+    formData.append('file', imageFile);
 
-    const { data } = await axios.post(`${API_BASE_URL}/news/upload-image/`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const { data } = await axios.post(
+      `${API_BASE_URL}/news/${newsId}/upload-image/`, 
+      formData, 
+      {
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
     return data;
   } catch (error) {
     throw new Error(error.response?.data?.detail || "Failed to upload image");

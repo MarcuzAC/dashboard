@@ -115,36 +115,44 @@ export default function NewsManagementPage() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  try {
+    setState(prev => ({ ...prev, isLoading: true }));
     
-    try {
-      setState(prev => ({ ...prev, isLoading: true }))
-      
-      if (state.editingId) {
-        await updateNews(state.editingId, formData, formData.image)
-        toast.success('News article updated successfully')
-      } else {
-        await createNews(formData, formData.image)
-        toast.success('News article created successfully')
-      }
+    const newsPayload = {
+      title: formData.title,
+      content: formData.content,
+      is_published: formData.is_published
+    };
 
-      await Promise.all([loadNews(), loadLatestNews()])
-      resetForm()
-    } catch (error) {
-      toast.error(error.message || 'Operation failed')
-      console.error('API Error:', error.response || error)
-    } finally {
-      setState(prev => ({ ...prev, isLoading: false }))
+    if (state.editingId) {
+      await updateNews(state.editingId, newsPayload, formData.image);
+      toast.success('News article updated successfully');
+    } else {
+      await createNews(newsPayload, formData.image);
+      toast.success('News article created successfully');
     }
+
+    await Promise.all([loadNews(), loadLatestNews()]);
+    resetForm();
+  } catch (error) {
+    console.error('Error details:', error);
+    toast.error(error.message || 'Operation failed');
+  } finally {
+    setState(prev => ({ ...prev, isLoading: false }));
   }
+};
+
+// Image handling remains the same as before
 
   const handleEdit = async (article) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }))
-      const fullArticle = await getNewsById(article.news_id)
+      const fullArticle = await getNewsById(article.id)
       
-      setState(prev => ({ ...prev, editingId: article.news_id }))
+      setState(prev => ({ ...prev, editingId: article.id }))
       setFormData({
         title: fullArticle?.title || '',
         content: fullArticle?.content || '',
@@ -160,12 +168,12 @@ export default function NewsManagementPage() {
     }
   }
 
-  const handleDelete = async (news_id) => {
+  const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this news article?')) return
     
     try {
       setState(prev => ({ ...prev, isLoading: true }))
-      await deleteNews(news_id)
+      await deleteNews(id)
       toast.success('News article deleted successfully')
       await Promise.all([loadNews(), loadLatestNews()])
     } catch (error) {
@@ -226,7 +234,7 @@ export default function NewsManagementPage() {
           <h2 className="text-xl font-semibold mb-4">Latest News</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestNews.map(article => (
-              <article key={article?.news_id || Math.random()} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <article key={article?.id || Math.random()} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 {article?.image_url && (
                   <img 
                     src={article.image_url} 
@@ -243,9 +251,9 @@ export default function NewsManagementPage() {
                   <p className="text-gray-700 line-clamp-2 mb-4">
                     {article?.content || ''}
                   </p>
-                  {article?.news_id && (
+                  {article?.id && (
                     <Link 
-                      href={`/news/${article.news_id}`}
+                      href={`/news/${article.id}`}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       prefetch={false}
                     >
@@ -310,7 +318,7 @@ export default function NewsManagementPage() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 required
-                maxLength={100}
+                maxLength={200}
               />
             </div>
 
@@ -326,7 +334,6 @@ export default function NewsManagementPage() {
                 rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 required
-                maxLength={5000}
               />
             </div>
 
@@ -408,7 +415,7 @@ export default function NewsManagementPage() {
           <>
             <div className="space-y-6 mb-6">
               {news.map(article => (
-                <article key={article?.news_id || Math.random()} className="border-b border-gray-200 pb-6 last:border-0">
+                <article key={article?.id || Math.random()} className="border-b border-gray-200 pb-6 last:border-0">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg font-medium">{article?.title || 'Untitled'}</h3>
@@ -425,7 +432,7 @@ export default function NewsManagementPage() {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => article?.news_id && handleEdit(article)}
+                        onClick={() => article?.id && handleEdit(article)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                         disabled={isLoading}
                         aria-label={`Edit ${article?.title || 'article'}`}
@@ -433,7 +440,7 @@ export default function NewsManagementPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => article?.news_id && handleDelete(article.news_id)}
+                        onClick={() => article?.id && handleDelete(article.id)}
                         className="text-red-600 hover:text-red-800 transition-colors"
                         disabled={isLoading}
                         aria-label={`Delete ${article?.title || 'article'}`}
@@ -457,9 +464,9 @@ export default function NewsManagementPage() {
                   </p>
                   
                   <div className="mt-3 flex justify-between items-center">
-                    {article?.news_id && (
+                    {article?.id && (
                       <Link 
-                        href={`/news/${article.news_id}`}
+                        href={`/news/${article.id}`}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                         prefetch={false}
                       >
