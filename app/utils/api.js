@@ -208,8 +208,8 @@ export const deleteUser = async (userId) => {
     throw new Error(error.response?.data?.detail || "Failed to delete user");
   }
 };
-// ================= News Endpoints ================= //
 
+// ================= News Endpoints ================= //
 export const createNews = async (newsData, imageFile) => {
   try {
     // First upload image if exists
@@ -219,7 +219,7 @@ export const createNews = async (newsData, imageFile) => {
       formData.append('file', imageFile);
       
       const uploadResponse = await axios.post(
-        `${API_BASE_URL}/news/upload-image/`, 
+        `${API_BASE_URL}/upload-news-image`, 
         formData,
         {
           headers: {
@@ -243,7 +243,6 @@ export const createNews = async (newsData, imageFile) => {
     });
     return data;
   } catch (error) {
-    console.error('Create news error:', error);
     const errorMsg = error.response?.data?.detail || 
                    error.response?.data?.message || 
                    "Failed to create news";
@@ -255,26 +254,13 @@ export const updateNews = async (newsId, newsData, imageFile) => {
   try {
     let imageUrl = newsData.image_url;
     
-    // Delete old image if new image is provided and old image exists
-    if (imageFile && newsData.image_url) {
-      await axios.post(`${API_BASE_URL}/news/delete-image/`, 
-        { image_url: newsData.image_url },
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
     // Upload new image if provided
     if (imageFile) {
       const formData = new FormData();
       formData.append('file', imageFile);
       
       const uploadResponse = await axios.post(
-        `${API_BASE_URL}/news/upload-image/`, 
+        `${API_BASE_URL}/upload-news-image`, 
         formData,
         {
           headers: {
@@ -298,7 +284,6 @@ export const updateNews = async (newsId, newsData, imageFile) => {
     });
     return data;
   } catch (error) {
-    console.error('Update news error:', error);
     throw new Error(error.response?.data?.detail || "Failed to update news");
   }
 };
@@ -315,7 +300,6 @@ export const getNewsList = async (page = 1, size = 10, publishedOnly = true) => 
     });
     return data;
   } catch (error) {
-    console.error('Get news list error:', error);
     return { items: [], total: 0, page: 1, size: 10 };
   }
 };
@@ -327,10 +311,11 @@ export const getNewsById = async (newsId) => {
     });
     return data;
   } catch (error) {
-    console.error('Get news by ID error:', error);
     throw new Error(error.response?.data?.detail || "News item not found");
   }
 };
+
+
 
 export const deleteNews = async (newsId) => {
   try {
@@ -338,7 +323,6 @@ export const deleteNews = async (newsId) => {
       headers: getAuthHeaders(),
     });
   } catch (error) {
-    console.error('Delete news error:', error);
     throw new Error(error.response?.data?.detail || "Failed to delete news");
   }
 };
@@ -351,25 +335,44 @@ export const getLatestNews = async (limit = 5) => {
     });
     return data;
   } catch (error) {
-    console.error('Get latest news error:', error);
     return [];
   }
 };
 
 export const searchNews = async (query, page = 1, size = 10, publishedOnly = true) => {
-    try {
-      const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
-        headers: getAuthHeaders(),
-        params: {
-          query,
-          page,
-          size,
-          published_only: publishedOnly,
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/news/search/`, {
+      headers: getAuthHeaders(),
+      params: {
+        query,
+        page,
+        size,
+        published_only: publishedOnly,
+      },
+    });
+    return data;
+  } catch (error) {
+    return { items: [], total: 0, page: 1, size: 10 };
+  }
+};
+
+export const uploadNewsImage = async (newsId, imageFile) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const { data } = await axios.post(
+      `${API_BASE_URL}/news/${newsId}/upload-image/`, 
+      formData, 
+      {
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'multipart/form-data',
         },
-      });
-      return data;
-    } catch (error) {
-      console.error('Search news error:', error);
-      return { items: [], total: 0, page: 1, size: 10 };
-    }
+      }
+    );
+    return data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || "Failed to upload image");
+  }
 };
