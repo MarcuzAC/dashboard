@@ -20,7 +20,7 @@ export default function NewsManagementPage() {
     latestNews: [],
     isLoading: true,
     isLoadingLatest: false,
-    isSubmitting: false, // Changed from isCreating to isSubmitting
+    isSubmitting: false,
     editingId: null,
     searchQuery: '',
     pagination: {
@@ -37,7 +37,7 @@ export default function NewsManagementPage() {
     image: null
   })
   const [previewImage, setPreviewImage] = useState(null)
-  const [formErrors, setFormErrors] = useState({}) // Added for form validation feedback
+  const [formErrors, setFormErrors] = useState({})
 
   const validateArticle = (article) => {
     return article && article.id && article.title && article.content;
@@ -46,8 +46,9 @@ export default function NewsManagementPage() {
   const validateForm = () => {
     const errors = {}
     if (!formData.title.trim()) errors.title = 'Title is required'
-    if (formData.title.length > 200) errors.title = 'Title must be 200 characters or less'
+    if (formData.title.length > 255) errors.title = 'Title must be 255 characters or less'
     if (!formData.content.trim()) errors.content = 'Content is required'
+    if (!state.editingId && !formData.image) errors.image = 'Image is required for new articles'
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -118,7 +119,6 @@ export default function NewsManagementPage() {
       ...prev, 
       [name]: type === 'checkbox' ? checked : value 
     }))
-    // Clear error for the field being edited
     setFormErrors(prev => ({ ...prev, [name]: '' }))
   }
 
@@ -130,7 +130,7 @@ export default function NewsManagementPage() {
         setFormErrors(prev => ({ ...prev, image: 'Only image files are allowed' }))
         return
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size must be less than 5MB')
         setFormErrors(prev => ({ ...prev, image: 'Image size must be less than 5MB' }))
         return
@@ -173,7 +173,7 @@ export default function NewsManagementPage() {
         toast.error('Please renew your subscription')
         router.push('/subscribe')
       } else if (error.message.includes('log in') || error.message.includes('Unauthorized')) {
-        toast.error('Please log in to create news')
+        toast.error('Please log in to perform this action')
         router.push('/login')
       } else {
         toast.error(error.message || 'Operation failed')
@@ -234,7 +234,7 @@ export default function NewsManagementPage() {
     })
     setPreviewImage(null)
     setFormErrors({})
-    setState(prev => ({ ...prev, editingId: null, isCreating: false }))
+    setState(prev => ({ ...prev, editingId: null }))
   }
 
   const handlePageChange = (newPage) => {
@@ -335,16 +335,6 @@ export default function NewsManagementPage() {
           <h2 className="text-xl font-semibold">
             {editingId ? 'Edit News Article' : 'Create New Article'}
           </h2>
-          {!editingId && (
-            <button 
-              onClick={() => setState(prev => ({ ...prev, isCreating: true }))}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
-              disabled={isSubmitting}
-              aria-label="Create new article"
-            >
-              Create New
-            </button>
-          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -360,7 +350,7 @@ export default function NewsManagementPage() {
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${formErrors.title ? 'border-red-500' : 'border-gray-300'}`}
               required
-              maxLength={200}
+              maxLength={255}
               aria-describedby="title-required title-error"
             />
             {formErrors.title && (
@@ -404,7 +394,8 @@ export default function NewsManagementPage() {
 
           <div>
             <label htmlFor="image-upload" className="block text-sm font-medium text-gray-700 mb-1">
-              {previewImage ? 'Change Image' : 'Upload Image (Optional)'}
+              {editingId ? 'Change Image (Optional)' : 'Upload Image*'}
+              {!editingId && <span id="image-required" className="sr-only">Required</span>}
             </label>
             <input
               type="file"
@@ -412,7 +403,7 @@ export default function NewsManagementPage() {
               accept="image/*"
               onChange={handleImageChange}
               className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${formErrors.image ? 'border-red-500' : ''}`}
-              aria-describedby="image-error"
+              aria-describedby="image-required image-error"
             />
             {formErrors.image && (
               <p id="image-error" className="mt-1 text-sm text-red-500">{formErrors.image}</p>
