@@ -91,6 +91,7 @@ const Dashboard = () => {
         backgroundColor: 'rgba(59, 130, 246, 0.6)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 1,
+        tension: 0.1,
       }],
     };
 
@@ -196,14 +197,14 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* User Growth Chart */}
+        {/* User Growth Chart - Now as Line Graph */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <h3 className="text-md font-semibold text-gray-900 mb-4">User Growth</h3>
           <div className="h-56">
             {loading ? (
               <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
             ) : (
-              <Bar 
+              <Line 
                 data={chartData?.userGrowthData} 
                 options={{
                   responsive: true,
@@ -216,7 +217,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Video Categories Chart */}
+        {/* Video Categories Chart - As Pie Chart */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <h3 className="text-md font-semibold text-gray-900 mb-4">Video Categories</h3>
           <div className="h-56">
