@@ -144,11 +144,12 @@ export const fetchDashboardStats = async () => {
   } catch (error) {
     // Enhanced error logging
     console.error("Dashboard stats error details:", {
+      timestamp: new Date().toISOString(),
       status: error.response?.status,
       statusText: error.response?.statusText,
       url: error.config?.url,
       method: error.config?.method,
-      requestData: error.config?.data,
+      requestHeaders: error.config?.headers,
       responseData: error.response?.data,
       stack: error.stack,
     });
@@ -157,7 +158,7 @@ export const fetchDashboardStats = async () => {
     return {
       error: true,
       message: error.response?.data?.message || "Failed to fetch dashboard stats",
-      details: error.response?.data, // Include full error response
+      details: error.response?.data,
       status: error.response?.status || 500,
       data: {
         total_users: 0,
@@ -180,8 +181,24 @@ export const fetchRecentVideos = async () => {
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch recent videos:", error);
-    return [];
+    console.error("Recent videos error details:", {
+      timestamp: new Date().toISOString(),
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method,
+      requestHeaders: error.config?.headers,
+      responseData: error.response?.data,
+      stack: error.stack,
+    });
+    
+    return {
+      error: true,
+      message: error.response?.data?.message || "Failed to fetch recent videos",
+      details: error.response?.data,
+      status: error.response?.status || 500,
+      data: []
+    };
   }
 };
 
@@ -571,6 +588,31 @@ export const uploadNewsImage = async (imageFile) => {
     return data;
   } catch (error) {
     throw new Error(error.response?.data?.detail || "Failed to upload image");
+  }
+};
+// ================= News Stats Endpoint ================= //
+
+export const getNewsStats = async (publishedOnly = true) => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/news/stats/count`, {
+      headers: getAuthHeaders(),
+      params: { published_only: publishedOnly }
+    });
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch news stats:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config
+    });
+    return {
+      error: true,
+      message: error.response?.data?.message || "Failed to fetch news statistics",
+      details: error.response?.data,
+      status: error.response?.status,
+      total_news: 0  // Fallback value
+      
+    };
   }
 };
 

@@ -38,6 +38,18 @@ const Dashboard = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [windowWidth, setWindowWidth] = useState(0);
+
+  useEffect(() => {
+    // Set initial window width
+    setWindowWidth(window.innerWidth);
+    
+    // Add resize listener
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -70,10 +82,10 @@ const Dashboard = () => {
   const prepareChartData = () => {
     if (!stats) return null;
 
-    // User growth chart data - use actual users data if available
+    // User growth bar chart data
     const userGrowthLabels = users.length > 0 
       ? [...new Set(users.map(user => new Date(user.created_at).toLocaleDateString('default', { month: 'short' })))]
-      : stats.user_growth?.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      : stats.user_growth?.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     const userGrowthCounts = users.length > 0
       ? userGrowthLabels.map(month => 
@@ -81,7 +93,7 @@ const Dashboard = () => {
             new Date(user.created_at).toLocaleDateString('default', { month: 'short' }) === month
           ).length
         )
-      : stats.user_growth?.counts || Array(6).fill(0);
+      : stats.user_growth?.counts || Array(12).fill(0);
 
     const userGrowthData = {
       labels: userGrowthLabels,
@@ -91,40 +103,51 @@ const Dashboard = () => {
         backgroundColor: 'rgba(59, 130, 246, 0.6)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 1,
-        tension: 0.1,
+        borderRadius: 4,
+        barPercentage: 0.8,
       }],
     };
 
-    // Video categories chart data - use actual categories data if available
+    // Video categories pie chart data
     const videoCategoriesLabels = categories.length > 0
       ? categories.map(cat => cat.name)
-      : stats.video_categories?.names || ['Entertainment', 'Education', 'Sports', 'News'];
+      : stats.video_categories?.names || ['Entertainment', 'Education', 'Sports', 'News', 'Music', 'Technology'];
     
     const videoCategoriesCounts = categories.length > 0
       ? categories.map(cat => cat.video_count || 0)
-      : stats.video_categories?.counts || Array(4).fill(25);
+      : stats.video_categories?.counts || [30, 25, 20, 15, 10, 5];
+
+    const backgroundColors = [
+      'rgba(59, 130, 246, 0.7)',   // Blue
+      'rgba(16, 185, 129, 0.7)',    // Green
+      'rgba(245, 158, 11, 0.7)',    // Yellow
+      'rgba(239, 68, 68, 0.7)',     // Red
+      'rgba(139, 92, 246, 0.7)',    // Purple
+      'rgba(20, 184, 166, 0.7)',    // Teal
+      'rgba(249, 115, 22, 0.7)',    // Orange
+      'rgba(236, 72, 153, 0.7)',    // Pink
+    ];
+
+    const borderColors = [
+      'rgba(59, 130, 246, 1)',
+      'rgba(16, 185, 129, 1)',
+      'rgba(245, 158, 11, 1)',
+      'rgba(239, 68, 68, 1)',
+      'rgba(139, 92, 246, 1)',
+      'rgba(20, 184, 166, 1)',
+      'rgba(249, 115, 22, 1)',
+      'rgba(236, 72, 153, 1)',
+    ];
 
     const videoCategoriesData = {
       labels: videoCategoriesLabels,
       datasets: [{
         data: videoCategoriesCounts,
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.7)',
-          'rgba(16, 185, 129, 0.7)',
-          'rgba(245, 158, 11, 0.7)',
-          'rgba(239, 68, 68, 0.7)',
-          'rgba(139, 92, 246, 0.7)',
-          'rgba(20, 184, 166, 0.7)',
-        ].slice(0, videoCategoriesLabels.length),
-        borderColor: [
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(239, 68, 68, 1)',
-          'rgba(139, 92, 246, 1)',
-          'rgba(20, 184, 166, 1)',
-        ].slice(0, videoCategoriesLabels.length),
-        borderWidth: 1,
+        backgroundColor: backgroundColors.slice(0, videoCategoriesLabels.length),
+        borderColor: borderColors.slice(0, videoCategoriesLabels.length),
+        borderWidth: 2,
+        hoverOffset: 15,
+        weight: 1
       }],
     };
 
@@ -141,7 +164,7 @@ const Dashboard = () => {
       }],
     };
 
-    return { userGrowthData, videoCategoriesData, revenueTrendsData };
+    return { userGrowthData, videoCategoriesData, revenueTrendsData};
   };
 
   const chartData = prepareChartData();
@@ -162,9 +185,9 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
         {loading
-          ? [...Array(5)].map((_, index) => <SkeletonStatCard key={index} />)
+          ? [...Array(6)].map((_, index) => <SkeletonStatCard key={index} />)
           : <>
               <StatCard 
                 icon={<FaUsers />} 
@@ -183,9 +206,10 @@ const Dashboard = () => {
               />
               <StatCard 
                 icon={<FaNewspaper />} 
-                title="News Articles" 
+                title="Total News" 
                 value={stats?.total_news || 0} 
               />
+            
               <StatCard 
                 icon={<FaDollarSign />} 
                 title="Revenue" 
@@ -196,42 +220,95 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* User Growth Chart - Now as Line Graph */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        {/* User Growth Bar Chart */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 lg:col-span-2">
           <h3 className="text-md font-semibold text-gray-900 mb-4">User Growth</h3>
           <div className="h-56">
             {loading ? (
               <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
             ) : (
-              <Line 
+              <Bar 
                 data={chartData?.userGrowthData} 
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: { legend: { position: 'top' } },
-                  scales: { y: { beginAtZero: true } }
+                  plugins: { 
+                    legend: { 
+                      display: false 
+                    } 
+                  },
+                  scales: { 
+                    y: { 
+                      beginAtZero: true,
+                      grid: {
+                        display: false
+                      }
+                    },
+                    x: {
+                      grid: {
+                        display: false
+                      }
+                    }
+                  }
                 }} 
               />
             )}
           </div>
         </div>
 
-        {/* Video Categories Chart - As Pie Chart */}
+        {/* Video Categories Pie Chart */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <h3 className="text-md font-semibold text-gray-900 mb-4">Video Categories</h3>
-          <div className="h-56">
+          <div className="h-64 relative">
             {loading ? (
               <div className="h-full w-full bg-gray-100 animate-pulse rounded"></div>
+            ) : categories.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                No category data available
+              </div>
             ) : (
-              <Pie 
-                data={chartData?.videoCategoriesData} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { position: 'right' } }
-                }} 
-              />
+              <div className="w-full h-full flex items-center justify-center">
+                <Pie 
+                  data={chartData?.videoCategoriesData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: windowWidth < 768 ? 'bottom' : 'right',
+                        labels: {
+                          padding: 20,
+                          usePointStyle: true,
+                          color: '#374151',
+                          font: {
+                            size: windowWidth < 768 ? 10 : 12
+                          }
+                        }
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                          }
+                        }
+                      }
+                    },
+                    layout: {
+                      padding: {
+                        left: 10,
+                        right: 10,
+                        top: 10,
+                        bottom: 10
+                      }
+                    }
+                  }} 
+                />
+              </div>
             )}
           </div>
         </div>
@@ -377,7 +454,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </div>
+        </div>
   );
 };
 
