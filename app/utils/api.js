@@ -142,16 +142,33 @@ export const fetchDashboardStats = async () => {
     });
     return data;
   } catch (error) {
-    console.error("Failed to fetch dashboard stats:", error);
+    // Enhanced error logging
+    console.error("Dashboard stats error details:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method,
+      requestData: error.config?.data,
+      responseData: error.response?.data,
+      stack: error.stack,
+    });
+
+    // Return error details along with fallback data
     return {
-      total_users: 0,
-      total_videos: 0,
-      total_categories: 0,
-      total_news: 0,
-      revenue: 0,
-      user_growth: { months: [], counts: [] },
-      video_categories: { names: [], counts: [] },
-      recent_videos: []
+      error: true,
+      message: error.response?.data?.message || "Failed to fetch dashboard stats",
+      details: error.response?.data, // Include full error response
+      status: error.response?.status || 500,
+      data: {
+        total_users: 0,
+        total_videos: 0,
+        total_categories: 0,
+        total_news: 0,
+        revenue: 0,
+        user_growth: { months: [], counts: [] },
+        video_categories: { names: [], counts: [] },
+        recent_videos: []
+      }
     };
   }
 };
